@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>MathStar</title>
-<!-- v3.0 google-only-auth -->
+<!-- v4.0 email-password-auth -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -19,12 +19,27 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f0f4ff;min-height:100v
 .auth-card{background:#fff;border-radius:28px;padding:48px 40px;box-shadow:0 4px 24px rgba(80,80,200,.10);max-width:420px;width:100%;text-align:center}
 .auth-star{font-size:64px;margin-bottom:16px;display:block}
 .auth-title{font-size:32px;font-weight:900;color:#1a1a2e;margin-bottom:10px;letter-spacing:-.5px}
-.auth-sub{font-size:14px;color:#6b7280;line-height:1.7;margin-bottom:36px}
-.google-btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:15px 20px;background:#fff;border:1.5px solid #d1d5db;border-radius:12px;font-size:15px;font-weight:600;color:#1a1a2e;cursor:pointer;transition:all .2s;margin-bottom:12px}
-.google-btn:hover{border-color:#4338ca;background:#f5f3ff;color:#4338ca}
-.auth-note{font-size:12px;color:#9ca3af;margin-top:16px}
-.auth-error{background:#fee2e2;color:#991b1b;border-radius:10px;padding:12px 16px;font-size:13px;margin-bottom:16px;display:none;text-align:left}
+.auth-sub{font-size:14px;color:#6b7280;line-height:1.7;margin-bottom:28px}
+.auth-tabs{display:flex;background:#f3f4f6;border-radius:10px;padding:4px;margin-bottom:24px}
+.auth-tab{flex:1;padding:8px;border-radius:7px;border:none;background:none;font-size:13px;font-weight:600;color:#6b7280;cursor:pointer;transition:all .2s}
+.auth-tab.active{background:#fff;color:#4338ca;box-shadow:0 1px 4px rgba(80,80,200,.12)}
+.auth-form-group{margin-bottom:14px;text-align:left}
+.auth-label{font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;display:block}
+.auth-input{width:100%;padding:12px 14px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;color:#1a1a2e;outline:none;transition:border .2s}
+.auth-input:focus{border-color:#4338ca;box-shadow:0 0 0 3px rgba(67,56,202,.1)}
+.role-select{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.role-option{border:2px solid #e5e7eb;border-radius:10px;padding:12px;text-align:center;cursor:pointer;transition:all .2s}
+.role-option.selected{border-color:#4338ca;background:#f5f3ff}
+.role-option-icon{font-size:22px;margin-bottom:4px}
+.role-option-label{font-size:13px;font-weight:600;color:#374151}
+.auth-btn{width:100%;padding:13px;background:#4338ca;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;margin-top:4px}
+.auth-btn:hover{background:#3730a3}
+.auth-btn:disabled{background:#c7d2fe;cursor:not-allowed}
+.auth-forgot{font-size:12px;color:#4338ca;background:none;border:none;cursor:pointer;display:block;text-align:right;margin-top:6px}
+.auth-error{background:#fee2e2;color:#991b1b;border-radius:10px;padding:12px 16px;font-size:13px;margin-bottom:14px;display:none;text-align:left}
 .auth-error.show{display:block}
+.auth-success{background:#d1fae5;color:#065f46;border-radius:10px;padding:12px 16px;font-size:13px;margin-bottom:14px;display:none;text-align:left}
+.auth-success.show{display:block}
 
 /* ── Loading ── */
 .loading-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:14px}
@@ -38,7 +53,6 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f0f4ff;min-height:100v
 .logo{display:flex;align-items:center;gap:8px;font-size:20px;font-weight:700;color:#4338ca}
 .user-info{display:flex;align-items:center;gap:10px}
 .avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#4338ca,#7c3aed);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;overflow:hidden;flex-shrink:0}
-.avatar img{width:100%;height:100%;object-fit:cover}
 .user-name{font-size:14px;font-weight:500;color:#374151}
 .role-badge{font-size:11px;padding:2px 8px;border-radius:20px;background:#ede9fe;color:#4338ca;font-weight:600}
 .logout-btn{font-size:12px;color:#6b7280;cursor:pointer;border:none;background:none;padding:4px 8px;border-radius:6px}
@@ -191,121 +205,171 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f0f4ff;min-height:100v
 <body>
 <div id="root"></div>
 <div class="toast" id="toast"></div>
-
 <script>
-const { createClient } = supabase;
-const sb = createClient(
+const{createClient}=supabase;
+const sb=createClient(
   'https://xzqxrpgecypykasuomyc.supabase.co',
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh6cXhycGdlY3lweWthc3VvbXljIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0MDg3NTQsImV4cCI6MjA5Nzk4NDc1NH0.hgwlWUnynBVc4G2uVNwCqb5A98zElJusgMyLKf6RViw'
 );
 
-function showToast(msg, err=false){
+function showToast(msg,err=false){
   const t=document.getElementById('toast');
-  t.textContent=msg; t.style.background=err?'#991b1b':'#1a1a2e';
-  t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3200);
+  t.textContent=msg;t.style.background=err?'#991b1b':'#1a1a2e';
+  t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3200);
 }
 const $=id=>document.getElementById(id);
 
-let S = {
-  view:'loading',
-  user:null, profile:null,
-  worksheets:[], submissions:[], wsResults:{},
-  currentWs:null, currentQ:0, answers:[],
-  tab:'worksheets', createTab:'manual', xlsxPreview:null,
+let S={
+  view:'loading',authTab:'login',authRole:'student',
+  user:null,profile:null,
+  worksheets:[],submissions:[],wsResults:{},
+  currentWs:null,currentQ:0,answers:[],
+  tab:'worksheets',createTab:'manual',xlsxPreview:null,
   newWs:{title:'',description:'',questions:[{text:'',answer:''}]},
 };
-function set(patch){ Object.assign(S,patch); render(); }
+function set(patch){Object.assign(S,patch);render();}
 
 // ── Render ───────────────────────────────────────────────────────────────────
 function render(){
   const root=$('root');
-  if(S.view==='loading'){
-    root.innerHTML=`<div class="loading-screen"><div class="spinner"></div><p class="loading-text">Loading MathStar…</p></div>`;
-    return;
-  }
-  if(S.view==='auth'){ root.innerHTML=buildAuth(); bindAuth(); return; }
-  root.innerHTML=buildApp(); bindApp();
+  if(S.view==='loading'){root.innerHTML=`<div class="loading-screen"><div class="spinner"></div><p class="loading-text">Loading MathStar…</p></div>`;return;}
+  if(S.view==='auth'){root.innerHTML=buildAuth();bindAuth();return;}
+  root.innerHTML=buildApp();bindApp();
 }
 
-// ── Auth screen ──────────────────────────────────────────────────────────────
+// ── Auth ─────────────────────────────────────────────────────────────────────
 function buildAuth(){
-  return `
-  <div class="auth-screen">
-    <div class="auth-card">
-      <span class="auth-star">⭐</span>
-      <div class="auth-title">MathStar</div>
-      <div class="auth-sub">Fun arithmetic worksheets for primary students.<br/>Solve sums, earn stars, climb the rankings!</div>
-      <div class="auth-error" id="auth-error"></div>
-      <button class="google-btn" id="google-btn">
-        <svg width="20" height="20" viewBox="0 0 48 48">
-          <path fill="#EA4335" d="M24 9.5c3.9 0 6.6 1.7 8.2 3.1l6-6C34.5 3.2 29.7 1 24 1 14.8 1 7 6.8 3.9 14.9l7 5.4C12.6 13.7 17.8 9.5 24 9.5z"/>
-          <path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.4c-.5 2.8-2.2 5.1-4.6 6.7l7.1 5.5c4.2-3.8 6.6-9.5 6.6-16.2z"/>
-          <path fill="#FBBC05" d="M10.9 28.6A14.6 14.6 0 0 1 9.5 24c0-1.6.3-3.1.8-4.5L3.3 14C1.2 17.7 0 22.2 0 24s1.2 6.3 3.3 10l7.6-5.4z"/>
-          <path fill="#34A853" d="M24 47c5.7 0 10.5-1.9 14-5.1l-7.1-5.5C29 37.9 26.6 38.5 24 38.5c-6.2 0-11.4-4.2-13.2-9.9l-7 5.4C7 41.2 14.8 47 24 47z"/>
-        </svg>
-        Continue with Google
-      </button>
-      <div class="auth-note">Sign in securely with your Google account. No password needed.</div>
+  const isLogin=S.authTab==='login';
+  return`<div class="auth-screen"><div class="auth-card">
+    <span class="auth-star">⭐</span>
+    <div class="auth-title">MathStar</div>
+    <div class="auth-sub">Fun arithmetic worksheets for primary students.<br/>Solve sums, earn stars, climb the rankings!</div>
+    <div class="auth-tabs">
+      <button class="auth-tab ${isLogin?'active':''}" id="tab-login">Sign in</button>
+      <button class="auth-tab ${!isLogin?'active':''}" id="tab-signup">Create account</button>
     </div>
-  </div>`;
+    <div class="auth-error" id="auth-error"></div>
+    <div class="auth-success" id="auth-success"></div>
+    ${!isLogin?`
+    <div style="text-align:left;margin-bottom:14px">
+      <label class="auth-label">I am a…</label>
+      <div class="role-select">
+        <div class="role-option ${S.authRole==='student'?'selected':''}" data-role="student">
+          <div class="role-option-icon">🎒</div><div class="role-option-label">Student</div>
+        </div>
+        <div class="role-option ${S.authRole==='teacher'?'selected':''}" data-role="teacher">
+          <div class="role-option-icon">📋</div><div class="role-option-label">Teacher</div>
+        </div>
+      </div>
+    </div>
+    <div class="auth-form-group">
+      <label class="auth-label">Full name</label>
+      <input class="auth-input" id="auth-name" type="text" placeholder="Alex Johnson"/>
+    </div>`:''}
+    <div class="auth-form-group">
+      <label class="auth-label">Email address</label>
+      <input class="auth-input" id="auth-email" type="email" placeholder="you@example.com"/>
+    </div>
+    <div class="auth-form-group">
+      <label class="auth-label">Password</label>
+      <input class="auth-input" id="auth-password" type="password" placeholder="${isLogin?'Your password':'Min. 6 characters'}"/>
+      ${isLogin?`<button class="auth-forgot" id="forgot-btn">Forgot password?</button>`:''}
+    </div>
+    <button class="auth-btn" id="auth-submit">${isLogin?'Sign in':'Create account'}</button>
+  </div></div>`;
 }
 
 function bindAuth(){
-  $('google-btn')?.addEventListener('click', async()=>{
-    const{error}=await sb.auth.signInWithOAuth({
-      provider:'google',
-      options:{redirectTo: window.location.href}
-    });
-    if(error){
-      const el=$('auth-error'); if(el){el.textContent=error.message;el.classList.add('show');}
-    }
-  });
+  $('tab-login')?.addEventListener('click',()=>set({authTab:'login'}));
+  $('tab-signup')?.addEventListener('click',()=>set({authTab:'signup'}));
+  document.querySelectorAll('.role-option').forEach(el=>el.addEventListener('click',()=>set({authRole:el.dataset.role})));
+  $('auth-submit')?.addEventListener('click',handleEmailAuth);
+  $('forgot-btn')?.addEventListener('click',handleForgotPassword);
+  ['auth-email','auth-password','auth-name'].forEach(id=>$(id)?.addEventListener('keydown',e=>{if(e.key==='Enter')handleEmailAuth();}));
 }
 
-// ── After login ──────────────────────────────────────────────────────────────
+function showAuthError(msg){const el=$('auth-error');if(el){el.textContent=msg;el.classList.add('show');}}
+function showAuthSuccess(msg){const el=$('auth-success');if(el){el.textContent=msg;el.classList.add('show');}}
+function hideAuthMsgs(){$('auth-error')?.classList.remove('show');$('auth-success')?.classList.remove('show');}
+
+async function handleEmailAuth(){
+  hideAuthMsgs();
+  const email=$('auth-email')?.value.trim();
+  const password=$('auth-password')?.value;
+  if(!email||!password){showAuthError('Please enter your email and password.');return;}
+  const btn=$('auth-submit');btn.disabled=true;btn.textContent='Please wait…';
+
+  if(S.authTab==='login'){
+    const{data,error}=await sb.auth.signInWithPassword({email,password});
+    if(error){showAuthError(error.message);btn.disabled=false;btn.textContent='Sign in';return;}
+    await afterLogin(data.user);
+  } else {
+    const name=$('auth-name')?.value.trim();
+    if(!name){showAuthError('Please enter your name.');btn.disabled=false;btn.textContent='Create account';return;}
+    if(password.length<6){showAuthError('Password must be at least 6 characters.');btn.disabled=false;btn.textContent='Create account';return;}
+    const{data,error}=await sb.auth.signUp({email,password,options:{data:{name,role:S.authRole}}});
+    if(error){showAuthError(error.message);btn.disabled=false;btn.textContent='Create account';return;}
+    await createProfile(data.user,name,email,S.authRole);
+    showAuthSuccess('Account created! Check your email to confirm, then sign in.');
+    btn.disabled=false;btn.textContent='Create account';
+  }
+}
+
+async function handleForgotPassword(){
+  hideAuthMsgs();
+  const email=$('auth-email')?.value.trim();
+  if(!email){showAuthError('Enter your email address first.');return;}
+  const{error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:window.location.href});
+  if(error)showAuthError(error.message);
+  else showAuthSuccess('Password reset email sent! Check your inbox.');
+}
+
+async function createProfile(user,name,email,role){
+  if(!user)return;
+  try{
+    const table=role==='teacher'?'teachers':'students';
+    const{data:existing}=await sb.from(table).select('id').eq('auth_id',user.id).maybeSingle();
+    if(existing)return;
+    await sb.from(table).insert({auth_id:user.id,name,email,google_id:user.id});
+  }catch(e){console.warn('createProfile',e);}
+}
+
 async function afterLogin(user){
-  if(!user) return;
-  // Look up profile in students then teachers
+  if(!user)return;
   let profile=null;
   const{data:student}=await sb.from('students').select('*').eq('auth_id',user.id).maybeSingle();
-  if(student){ profile={...student,role:'student'}; }
+  if(student){profile={...student,role:'student'};}
   else{
     const{data:teacher}=await sb.from('teachers').select('*').eq('auth_id',user.id).maybeSingle();
-    if(teacher) profile={...teacher,role:'teacher'};
+    if(teacher)profile={...teacher,role:'teacher'};
   }
-  // First-time Google login — create student profile by default
   if(!profile){
-    const name=user.user_metadata?.full_name||user.user_metadata?.name||user.email.split('@')[0];
+    const name=user.user_metadata?.name||user.email.split('@')[0];
     const role=user.user_metadata?.role||'student';
-    const table=role==='teacher'?'teachers':'students';
-    const{data:created}=await sb.from(table).insert({auth_id:user.id,name,email:user.email,google_id:user.id}).select().single();
-    profile=created?{...created,role}:{id:user.id,name,email:user.email,role};
+    await createProfile(user,name,user.email,role);
+    const{data:newP}=await sb.from(role==='teacher'?'teachers':'students').select('*').eq('auth_id',user.id).maybeSingle();
+    profile=newP?{...newP,role}:{id:user.id,name,email:user.email,role};
   }
-  S.user=user; S.profile=profile; S.view='home'; S.tab='worksheets';
-  await loadData(); render();
+  S.user=user;S.profile=profile;S.view='home';S.tab='worksheets';
+  await loadData();render();
 }
 
-// ── App shell ────────────────────────────────────────────────────────────────
+// ── App ───────────────────────────────────────────────────────────────────────
 function buildApp(){
-  if(S.view==='quiz') return `<div class="app">${buildHeader()}<button class="btn-back" id="back-btn">← Back</button>${buildQuiz()}</div>`;
-  if(S.view==='result') return `<div class="app">${buildHeader()}<button class="btn-back" id="back-btn">← Back</button>${buildResult()}</div>`;
-  return `<div class="app">${buildHeader()}${buildNav()}${buildMain()}</div>`;
+  if(S.view==='quiz')return`<div class="app">${buildHeader()}<button class="btn-back" id="back-btn">← Back</button>${buildQuiz()}</div>`;
+  if(S.view==='result')return`<div class="app">${buildHeader()}<button class="btn-back" id="back-btn">← Back</button>${buildResult()}</div>`;
+  return`<div class="app">${buildHeader()}${buildNav()}${buildMain()}</div>`;
 }
 
 function buildHeader(){
   const p=S.profile||{};
   const initials=(p.name||'U').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
-  const avatar=S.user?.user_metadata?.avatar_url
-    ?`<img src="${S.user.user_metadata.avatar_url}" alt=""/>`
-    :initials;
-  return `<div class="header">
+  return`<div class="header">
     <div class="logo">⭐ MathStar</div>
     <div class="user-info">
-      <div class="avatar">${avatar}</div>
-      <div>
-        <div class="user-name">${p.name||p.email||'User'}</div>
-        <span class="role-badge">${p.role==='teacher'?'Teacher':'Student'}</span>
-      </div>
+      <div class="avatar">${initials}</div>
+      <div><div class="user-name">${p.name||p.email||'User'}</div>
+      <span class="role-badge">${p.role==='teacher'?'Teacher':'Student'}</span></div>
       <button class="logout-btn" id="logout-btn">Sign out</button>
     </div>
   </div>`;
@@ -315,29 +379,28 @@ function buildNav(){
   const tabs=S.profile?.role==='teacher'
     ?[['worksheets','📋 Worksheets'],['create','➕ Create'],['results','📊 Results']]
     :[['worksheets','📝 My Worksheets'],['scores','🏆 My Scores']];
-  return `<div class="nav">${tabs.map(([k,l])=>`<button class="nav-tab ${S.tab===k?'active':''}" data-tab="${k}">${l}</button>`).join('')}</div>`;
+  return`<div class="nav">${tabs.map(([k,l])=>`<button class="nav-tab ${S.tab===k?'active':''}" data-tab="${k}">${l}</button>`).join('')}</div>`;
 }
 
 function buildMain(){
   if(S.profile?.role==='teacher'){
-    if(S.tab==='worksheets') return buildTeacherWsList();
-    if(S.tab==='create') return buildCreateWs();
-    if(S.tab==='results') return buildTeacherResults();
+    if(S.tab==='worksheets')return buildTeacherWsList();
+    if(S.tab==='create')return buildCreateWs();
+    if(S.tab==='results')return buildTeacherResults();
   }
-  if(S.tab==='worksheets') return buildStudentWsList();
-  if(S.tab==='scores') return buildStudentScores();
-  return '';
+  if(S.tab==='worksheets')return buildStudentWsList();
+  if(S.tab==='scores')return buildStudentScores();
+  return'';
 }
 
-// ── Student views ────────────────────────────────────────────────────────────
 function buildStudentWsList(){
-  if(!S.worksheets.length) return `<div class="empty-state"><span>📭</span>No worksheets yet. Check back soon!</div>`;
+  if(!S.worksheets.length)return`<div class="empty-state"><span>📭</span>No worksheets yet. Check back soon!</div>`;
   const emojis=['🔢','➕','✖️','➗','🧮'];
-  return `<div class="section-title">Available worksheets</div>
+  return`<div class="section-title">Available worksheets</div>
   <div class="worksheet-grid">
   ${S.worksheets.filter(w=>w.is_active).map((w,i)=>{
     const sub=S.submissions.find(s=>s.worksheet_id===w.id);
-    return `<div class="worksheet-card ${sub?'completed':''}" data-ws="${w.id}">
+    return`<div class="worksheet-card ${sub?'completed':''}" data-ws="${w.id}">
       <div class="ws-emoji">${emojis[i%emojis.length]}</div>
       ${sub?`<div class="ws-badge">✅</div>`:''}
       <div class="ws-title">${w.title}</div>
@@ -352,11 +415,11 @@ function buildStudentWsList(){
 }
 
 function buildStudentScores(){
-  if(!S.submissions.length) return `<div class="empty-state"><span>🏆</span>No submissions yet. Complete a worksheet!</div>`;
-  return `<div class="section-title">Your scores</div>
+  if(!S.submissions.length)return`<div class="empty-state"><span>🏆</span>No submissions yet. Complete a worksheet!</div>`;
+  return`<div class="section-title">Your scores</div>
   ${S.submissions.map(s=>{
     const ws=S.worksheets.find(w=>w.id===s.worksheet_id);
-    return `<div class="leaderboard" style="margin-bottom:12px;padding:16px 20px">
+    return`<div class="leaderboard" style="margin-bottom:12px;padding:16px 20px">
       <div style="display:flex;align-items:center;justify-content:space-between">
         <div><div style="font-size:15px;font-weight:700">${ws?.title||'Worksheet'}</div>
         <div style="font-size:12px;color:#6b7280">${new Date(s.submitted_at).toLocaleDateString()}</div></div>
@@ -372,14 +435,14 @@ function buildStudentScores(){
 
 function buildRanking(wsId){
   const sorted=[...(S.wsResults[wsId]||[])].sort((a,b)=>b.score-a.score);
-  if(!sorted.length) return '';
-  return `<div style="margin-top:14px;border-top:.5px solid #f3f4f6;padding-top:14px">
+  if(!sorted.length)return'';
+  return`<div style="margin-top:14px;border-top:.5px solid #f3f4f6;padding-top:14px">
     <div style="font-size:12px;font-weight:700;color:#6b7280;margin-bottom:10px;text-transform:uppercase">Class Ranking</div>
     ${sorted.map((s,i)=>{
       const isMe=s.student_id===S.profile?.id;
       const rc=i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'rank-other';
       const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':`#${i+1}`;
-      return `<div class="leaderboard-row">
+      return`<div class="leaderboard-row">
         <div class="rank-badge ${rc}">${medal}</div>
         <div class="lb-name">${isMe?(S.profile?.name||'You'):(s.student_name||'Student')}${isMe?`<span class="lb-you">You</span>`:''}</div>
         <div class="lb-score">${Math.round(s.score)}%</div>
@@ -388,10 +451,9 @@ function buildRanking(wsId){
   </div>`;
 }
 
-// ── Teacher views ────────────────────────────────────────────────────────────
 function buildTeacherWsList(){
-  const ws=S.worksheets, subs=Object.values(S.wsResults).flat();
-  return `
+  const ws=S.worksheets,subs=Object.values(S.wsResults).flat();
+  return`
   <div class="stats-row">
     <div class="stat-card"><div class="stat-num">${ws.length}</div><div class="stat-label">Worksheets</div></div>
     <div class="stat-card"><div class="stat-num">${subs.length}</div><div class="stat-label">Submissions</div></div>
@@ -410,17 +472,13 @@ function buildTeacherWsList(){
 }
 
 function buildCreateWs(){
-  const qs=S.newWs.questions, isExcel=S.createTab==='excel';
-  return `<div class="teacher-panel">
+  const qs=S.newWs.questions,isExcel=S.createTab==='excel';
+  return`<div class="teacher-panel">
     <div class="section-title" style="margin-bottom:16px">New Worksheet</div>
-    <div class="form-group2">
-      <label class="form-label2">Title</label>
-      <input class="form-input2" id="ws-title" placeholder="e.g. Addition practice" value="${S.newWs.title}"/>
-    </div>
-    <div class="form-group2">
-      <label class="form-label2">Description (optional)</label>
-      <input class="form-input2" id="ws-desc" placeholder="e.g. Adding numbers up to 20" value="${S.newWs.description}"/>
-    </div>
+    <div class="form-group2"><label class="form-label2">Title</label>
+      <input class="form-input2" id="ws-title" placeholder="e.g. Addition practice" value="${S.newWs.title}"/></div>
+    <div class="form-group2"><label class="form-label2">Description (optional)</label>
+      <input class="form-input2" id="ws-desc" placeholder="e.g. Adding numbers up to 20" value="${S.newWs.description}"/></div>
     <label class="form-label2">Questions source</label>
     <div class="upload-tabs" style="margin-bottom:16px">
       <button class="upload-tab ${!isExcel?'active':''}" data-ctab="manual">✏️ Type manually</button>
@@ -433,13 +491,11 @@ function buildCreateWs(){
 
 function buildExcelUpload(){
   const preview=S.xlsxPreview;
-  return `<div>
+  return`<div>
     <div class="template-download">
       <div class="template-icon">📥</div>
-      <div class="template-info">
-        <div class="template-title">Download Excel template</div>
-        <div class="template-sub">Pre-formatted with Question and Answer columns</div>
-      </div>
+      <div class="template-info"><div class="template-title">Download Excel template</div>
+      <div class="template-sub">Pre-formatted with Question and Answer columns</div></div>
       <button class="template-btn" id="dl-template-btn">Download</button>
     </div>
     <div class="drop-zone" id="drop-zone">
@@ -447,15 +503,15 @@ function buildExcelUpload(){
       <div class="drop-icon">📊</div>
       <div class="drop-title">Drop your Excel file here</div>
       <div class="drop-sub">or click to browse</div>
-      <div class="drop-hint">Column A: <code>Question</code> &nbsp;·&nbsp; Column B: <code>Answer</code><br/>Row 1 = header. Supports <code>.xlsx</code> <code>.xls</code> <code>.csv</code></div>
+      <div class="drop-hint">Column A: <code>Question</code> · Column B: <code>Answer</code><br/>Row 1 = header. Supports <code>.xlsx</code> <code>.xls</code> <code>.csv</code></div>
     </div>
     ${preview?buildXlsxPreview(preview):''}
   </div>`;
 }
 
 function buildXlsxPreview(preview){
-  const{rows,errors}=preview, valid=rows.filter(r=>r.ok);
-  return `<div class="excel-preview">
+  const{rows,errors}=preview,valid=rows.filter(r=>r.ok);
+  return`<div class="excel-preview">
     <div class="excel-preview-header">
       <div class="excel-preview-title">📊 ${rows.length} rows &nbsp;<span class="preview-ok">✔ ${valid.length} valid</span>${errors.length?` &nbsp;<span class="preview-err">✗ ${errors.length} skipped</span>`:''}</div>
       <button class="excel-preview-clear" id="clear-preview">✕ Clear</button>
@@ -471,7 +527,7 @@ function buildXlsxPreview(preview){
 }
 
 function buildManualQs(qs){
-  return `<label class="form-label2">Questions</label>
+  return`<label class="form-label2">Questions</label>
   <div style="display:flex;gap:8px;padding:6px 0;margin-bottom:4px">
     <div style="width:24px"></div>
     <div style="flex:2;font-size:12px;color:#6b7280;font-weight:600">Question</div>
@@ -489,11 +545,10 @@ function buildManualQs(qs){
   <button class="add-q-btn" id="add-q-btn">+ Add question</button>`;
 }
 
-// ── Quiz ─────────────────────────────────────────────────────────────────────
 function buildQuiz(){
   const ws=S.currentWs,qs=ws.questions||[],qi=S.currentQ,q=qs[qi],ans=S.answers[qi];
   const pct=Math.round(((qi+(ans!==undefined?1:0))/qs.length)*100);
-  return `<div class="quiz-header">
+  return`<div class="quiz-header">
     <div class="quiz-title">${ws.title}</div>
     <div class="quiz-progress">
       <div class="progress-bar-wrap"><div class="progress-bar" style="width:${pct}%"></div></div>
@@ -511,13 +566,12 @@ function buildQuiz(){
   </div>`;
 }
 
-// ── Result ───────────────────────────────────────────────────────────────────
 function buildResult(){
   const ws=S.currentWs,qs=ws.questions||[];
   const correct=S.answers.filter((a,i)=>a!==undefined&&String(a).trim()===String(qs[i].correct_answer).trim()).length;
   const score=Math.round((correct/qs.length)*100);
   const emoji=score>=80?'🌟':score>=50?'👍':'💪';
-  return `<div class="result-card">
+  return`<div class="result-card">
     <div class="result-emoji">${emoji}</div>
     <div class="result-score">${score}%</div>
     <div class="result-label">${score>=80?'Excellent work!':score>=50?'Good effort!':'Keep practising!'}</div>
@@ -530,7 +584,7 @@ function buildResult(){
   <div class="answers-list">
   ${qs.map((q,i)=>{
     const given=S.answers[i],isOk=given!==undefined&&String(given).trim()===String(q.correct_answer).trim();
-    return `<div class="answer-row">
+    return`<div class="answer-row">
       <div class="answer-icon">${isOk?'✅':'❌'}</div>
       <div class="answer-q">${q.question_text}</div>
       <div class="answer-vals">
@@ -545,17 +599,17 @@ function buildResult(){
 
 function buildTeacherResults(){
   const entries=Object.entries(S.wsResults);
-  if(!entries.length) return `<div class="empty-state"><span>📊</span>No submissions yet.</div>`;
+  if(!entries.length)return`<div class="empty-state"><span>📊</span>No submissions yet.</div>`;
   return entries.map(([wsId,subs])=>{
     const ws=S.worksheets.find(w=>w.id===wsId);
-    if(!subs.length) return '';
-    return `<div class="teacher-panel">
+    if(!subs.length)return'';
+    return`<div class="teacher-panel">
       <div class="section-title" style="margin-bottom:14px">${ws?.title||'Worksheet'}</div>
       <table class="results-table">
         <thead><tr><th>Rank</th><th>Student</th><th>Score</th><th>Correct</th><th>Date</th></tr></thead>
         <tbody>${[...subs].sort((a,b)=>b.score-a.score).map((s,i)=>{
           const cls=s.score>=80?'high':s.score>=50?'mid':'low';
-          return `<tr>
+          return`<tr>
             <td>${i===0?'🥇':i===1?'🥈':i===2?'🥉':`#${i+1}`}</td>
             <td>${s.student_name||'Student'}</td>
             <td><span class="score-pill ${cls}">${Math.round(s.score)}%</span></td>
@@ -568,7 +622,7 @@ function buildTeacherResults(){
   }).join('');
 }
 
-// ── Event binding ────────────────────────────────────────────────────────────
+// ── Events ───────────────────────────────────────────────────────────────────
 function bindApp(){
   const on=(id,ev,fn)=>{const el=$(id);if(el)el.addEventListener(ev,fn)};
   on('logout-btn','click',async()=>{
@@ -577,13 +631,13 @@ function bindApp(){
   });
   on('back-btn','click',()=>set({view:'home'}));
   on('prev-btn','click',()=>{
-    const inp=$('answer-input'),cur=[...S.answers]; cur[S.currentQ]=inp?inp.value:undefined;
+    const inp=$('answer-input'),cur=[...S.answers];cur[S.currentQ]=inp?inp.value:undefined;
     set({answers:cur,currentQ:S.currentQ-1});
   });
   on('next-btn','click',()=>{
-    const inp=$('answer-input'),cur=[...S.answers]; cur[S.currentQ]=inp?inp.value:'';
+    const inp=$('answer-input'),cur=[...S.answers];cur[S.currentQ]=inp?inp.value:'';
     const qs=S.currentWs.questions||[];
-    if(S.currentQ<qs.length-1) set({answers:cur,currentQ:S.currentQ+1});
+    if(S.currentQ<qs.length-1)set({answers:cur,currentQ:S.currentQ+1});
     else submitQuiz(cur);
   });
   on('answer-input','keydown',e=>{if(e.key==='Enter')$('next-btn')?.click()});
@@ -600,7 +654,7 @@ function bindApp(){
   document.querySelectorAll('[data-toggle]').forEach(el=>el.addEventListener('click',e=>toggleWs(e.target.dataset.toggle,e.target.dataset.active==='true')));
   document.querySelectorAll('[data-qi][data-field]').forEach(el=>el.addEventListener('input',e=>{
     const{qi,field}=e.target.dataset,qs=[...S.newWs.questions];
-    qs[qi]={...qs[qi],[field]:e.target.value}; S.newWs={...S.newWs,questions:qs};
+    qs[qi]={...qs[qi],[field]:e.target.value};S.newWs={...S.newWs,questions:qs};
   }));
   document.querySelectorAll('[data-rm]').forEach(el=>el.addEventListener('click',e=>{
     const i=+e.target.dataset.rm;
@@ -626,7 +680,7 @@ async function loadData(){
       const wsResults={};
       for(const w of S.worksheets){
         const{data:all}=await sb.from('submissions').select('score,correct_count,total_questions,submitted_at,student_id').eq('worksheet_id',w.id);
-        if(all?.length) wsResults[w.id]=all.map(s=>({...s,student_name:s.student_id===S.profile.id?(S.profile.name||'You'):'Classmate'}));
+        if(all?.length)wsResults[w.id]=all.map(s=>({...s,student_name:s.student_id===S.profile.id?(S.profile.name||'You'):'Classmate'}));
       }
       S.wsResults=wsResults;
     }
@@ -646,10 +700,10 @@ async function loadData(){
 }
 
 async function startWs(wsId){
-  const ws=S.worksheets.find(w=>w.id===wsId); if(!ws) return;
+  const ws=S.worksheets.find(w=>w.id===wsId);if(!ws)return;
   if(S.submissions.find(s=>s.worksheet_id===wsId)){showToast('You already submitted this worksheet!');return;}
   const{data:qs}=await sb.from('questions').select('*').eq('worksheet_id',wsId).order('order_index');
-  S.currentWs={...ws,questions:qs||[]}; set({view:'quiz',currentQ:0,answers:[]});
+  S.currentWs={...ws,questions:qs||[]};set({view:'quiz',currentQ:0,answers:[]});
 }
 
 async function submitQuiz(answers){
@@ -658,8 +712,7 @@ async function submitQuiz(answers){
   const score=(correct/qs.length)*100;
   try{
     const{data:sub}=await sb.from('submissions').insert({
-      student_id:S.profile.id,worksheet_id:ws.id,
-      score,total_questions:qs.length,correct_count:correct
+      student_id:S.profile.id,worksheet_id:ws.id,score,total_questions:qs.length,correct_count:correct
     }).select().single();
     if(sub){
       await sb.from('submission_answers').insert(answers.map((a,i)=>({
@@ -685,15 +738,15 @@ async function createWorksheet(){
     if(ws){
       await sb.from('questions').insert(validQs.map((q,i)=>({worksheet_id:ws.id,question_text:q.text,correct_answer:q.answer,order_index:i})));
       showToast(`Worksheet published with ${validQs.length} questions!`);
-      S.newWs={title:'',description:'',questions:[{text:'',answer:''}]}; S.xlsxPreview=null;
-      await loadData(); set({tab:'worksheets'});
+      S.newWs={title:'',description:'',questions:[{text:'',answer:''}]};S.xlsxPreview=null;
+      await loadData();set({tab:'worksheets'});
     }
   }catch(e){showToast('Error creating worksheet',true);}
 }
 
 async function toggleWs(wsId,isActive){
   await sb.from('worksheets').update({is_active:!isActive}).eq('id',wsId);
-  await loadData(); render();
+  await loadData();render();
 }
 
 // ── Excel ────────────────────────────────────────────────────────────────────
@@ -729,20 +782,19 @@ function importXlsx(){
 function downloadTemplate(){
   const ws=XLSX.utils.aoa_to_sheet([['Question','Answer'],['2 + 3 = ?','5'],['10 - 4 = ?','6'],['3 × 4 = ?','12'],['15 ÷ 3 = ?','5'],['7 + 8 = ?','15']]);
   ws['!cols']=[{wch:32},{wch:16}];
-  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Worksheet');
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Worksheet');
   XLSX.writeFile(wb,'MathStar_template.xlsx');
 }
 
 // ── Boot ─────────────────────────────────────────────────────────────────────
 (async()=>{
-  render(); // show spinner
+  render();
   const{data:{session}}=await sb.auth.getSession();
-  if(session?.user) await afterLogin(session.user);
+  if(session?.user)await afterLogin(session.user);
   else set({view:'auth'});
-
   sb.auth.onAuthStateChange(async(event,session)=>{
-    if(event==='SIGNED_IN'&&session?.user&&S.view==='auth') await afterLogin(session.user);
-    if(event==='SIGNED_OUT') set({view:'auth',user:null,profile:null,submissions:[],wsResults:{},worksheets:[]});
+    if(event==='SIGNED_IN'&&session?.user&&S.view==='auth')await afterLogin(session.user);
+    if(event==='SIGNED_OUT')set({view:'auth',user:null,profile:null,submissions:[],wsResults:{},worksheets:[]});
   });
 })();
 </script>
