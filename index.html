@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+<meta http-equiv="Pragma" content="no-cache"/>
+<meta http-equiv="Expires" content="0"/>
+<title>MathStar</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:#f0f4ff;min-height:100vh;color:#1a1a2e}
+
+/* ── Auth ── */
+.auth-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;background:#f0f4ff}
+.auth-card{background:#fff;border-radius:28px;padding:48px 40px;box-shadow:0 4px 24px rgba(80,80,200,.10);max-width:420px;width:100%;text-align:center}
+.auth-star{font-size:64px;margin-bottom:16px;display:block}
+.auth-title{font-size:32px;font-weight:900;color:#1a1a2e;margin-bottom:10px;letter-spacing:-.5px}
+.auth-sub{font-size:14px;color:#6b7280;line-height:1.7;margin-bottom:36px}
+.google-btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:15px 20px;background:#fff;border:1.5px solid #d1d5db;border-radius:12px;font-size:15px;font-weight:600;color:#1a1a2e;cursor:pointer;transition:all .2s;margin-bottom:12px}
+.google-btn:hover{border-color:#4338ca;background:#f5f3ff;color:#4338ca}
+.auth-note{font-size:12px;color:#9ca3af;margin-top:16px}
+.auth-error{background:#fee2e2;color:#991b1b;border-radius:10px;padding:12px 16px;font-size:13px;margin-bottom:16px;display:none;text-align:left}
+.auth-error.show{display:block}
+
+/* ── Loading ── */
+.loading-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:14px}
+.spinner{width:36px;height:36px;border:3px solid #e5e7eb;border-top-color:#4338ca;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:14px;color:#6b7280}
+
+/* ── App shell ── */
+.app{max-width:900px;margin:0 auto;padding:16px}
+.header{display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:16px;padding:14px 20px;margin-bottom:20px;box-shadow:0 2px 8px rgba(80,80,200,.08)}
+.logo{display:flex;align-items:center;gap:8px;font-size:20px;font-weight:700;color:#4338ca}
+.user-info{display:flex;align-items:center;gap:10px}
+.avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#4338ca,#7c3aed);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;overflow:hidden;flex-shrink:0}
+.avatar img{width:100%;height:100%;object-fit:cover}
+.user-name{font-size:14px;font-weight:500;color:#374151}
+.role-badge{font-size:11px;padding:2px 8px;border-radius:20px;background:#ede9fe;color:#4338ca;font-weight:600}
+.logout-btn{font-size:12px;color:#6b7280;cursor:pointer;border:none;background:none;padding:4px 8px;border-radius:6px}
+.logout-btn:hover{background:#f3f4f6}
+.nav{display:flex;gap:8px;background:#fff;border-radius:12px;padding:6px;margin-bottom:20px;box-shadow:0 2px 8px rgba(80,80,200,.06)}
+.nav-tab{flex:1;padding:10px;border-radius:8px;border:none;background:none;font-size:14px;font-weight:500;color:#6b7280;cursor:pointer;transition:all .2s}
+.nav-tab.active{background:#4338ca;color:#fff}
+.nav-tab:hover:not(.active){background:#f3f4f6}
+.section-title{font-size:18px;font-weight:700;color:#1a1a2e;margin-bottom:14px}
+
+/* ── Worksheets ── */
+.worksheet-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.worksheet-card{background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 8px rgba(80,80,200,.07);cursor:pointer;transition:all .2s;border:2px solid transparent;position:relative}
+.worksheet-card:hover{border-color:#4338ca;transform:translateY(-2px);box-shadow:0 6px 20px rgba(80,80,200,.15)}
+.worksheet-card.completed{border-color:#10b981}
+.ws-emoji{font-size:32px;margin-bottom:10px}
+.ws-title{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:4px}
+.ws-desc{font-size:13px;color:#6b7280;margin-bottom:12px}
+.ws-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ws-questions{font-size:12px;color:#6b7280;background:#f3f4f6;padding:3px 10px;border-radius:20px}
+.ws-score{font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px}
+.ws-score.pass{background:#d1fae5;color:#065f46}
+.ws-score.fail{background:#fee2e2;color:#991b1b}
+.ws-badge{position:absolute;top:14px;right:14px;font-size:18px}
+
+/* ── Quiz ── */
+.quiz-header{background:#fff;border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:0 2px 8px rgba(80,80,200,.07)}
+.quiz-title{font-size:20px;font-weight:700;color:#1a1a2e;margin-bottom:6px}
+.quiz-progress{display:flex;align-items:center;gap:12px;margin-top:8px}
+.progress-bar-wrap{flex:1;height:8px;background:#f3f4f6;border-radius:99px;overflow:hidden}
+.progress-bar{height:100%;background:linear-gradient(90deg,#4338ca,#7c3aed);border-radius:99px;transition:width .3s}
+.progress-text{font-size:13px;color:#6b7280;white-space:nowrap}
+.question-card{background:#fff;border-radius:20px;padding:32px;box-shadow:0 2px 8px rgba(80,80,200,.07);text-align:center;margin-bottom:16px}
+.question-number{font-size:13px;color:#9ca3af;margin-bottom:12px;font-weight:500}
+.question-text{font-size:28px;font-weight:800;color:#1a1a2e;margin-bottom:28px}
+.answer-input{width:100%;max-width:200px;padding:14px 20px;font-size:24px;font-weight:700;text-align:center;border:2px solid #e5e7eb;border-radius:12px;outline:none;color:#1a1a2e;transition:border .2s}
+.answer-input:focus{border-color:#4338ca;box-shadow:0 0 0 3px rgba(67,56,202,.12)}
+.quiz-actions{display:flex;gap:12px;justify-content:center;margin-top:20px}
+.btn-primary{padding:12px 28px;background:#4338ca;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-primary:hover{background:#3730a3}
+.btn-secondary{padding:12px 28px;background:#f3f4f6;color:#374151;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-secondary:hover{background:#e5e7eb}
+.btn-back{display:flex;align-items:center;gap:6px;background:none;border:none;color:#4338ca;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:16px;padding:4px 0}
+
+/* ── Result ── */
+.result-card{background:#fff;border-radius:20px;padding:32px;box-shadow:0 2px 8px rgba(80,80,200,.07);text-align:center;margin-bottom:16px}
+.result-emoji{font-size:56px;margin-bottom:12px}
+.result-score{font-size:48px;font-weight:900;color:#4338ca;margin-bottom:4px}
+.result-label{color:#6b7280;font-size:15px;margin-bottom:24px}
+.result-breakdown{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px}
+.breakdown-item{background:#f8f7ff;border-radius:12px;padding:16px}
+.breakdown-num{font-size:24px;font-weight:800;color:#4338ca}
+.breakdown-label{font-size:12px;color:#6b7280;margin-top:2px}
+.answers-list{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
+.answer-row{display:flex;align-items:center;gap:12px;background:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 1px 4px rgba(80,80,200,.06)}
+.answer-icon{font-size:20px;width:28px;text-align:center;flex-shrink:0}
+.answer-q{font-size:15px;color:#374151;flex:1;font-weight:500}
+.answer-vals{text-align:right}
+.answer-given{font-size:14px;font-weight:700}
+.answer-given.correct{color:#10b981}
+.answer-given.wrong{color:#ef4444}
+.answer-correct-val{font-size:12px;color:#6b7280}
+
+/* ── Leaderboard ── */
+.leaderboard{background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 8px rgba(80,80,200,.07)}
+.leaderboard-row{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:.5px solid #f3f4f6}
+.leaderboard-row:last-child{border-bottom:none}
+.rank-badge{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0}
+.rank-1{background:#fef3c7;color:#92400e}
+.rank-2{background:#f3f4f6;color:#374151}
+.rank-3{background:#fef3c7;color:#b45309}
+.rank-other{background:#f0f4ff;color:#4338ca}
+.lb-name{flex:1;font-size:15px;font-weight:600;color:#1a1a2e}
+.lb-score{font-size:15px;font-weight:700;color:#4338ca}
+.lb-you{font-size:11px;color:#7c3aed;background:#ede9fe;padding:2px 8px;border-radius:20px;margin-left:6px}
+
+/* ── Teacher ── */
+.teacher-panel{background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 8px rgba(80,80,200,.07);margin-bottom:16px}
+.form-group2{margin-bottom:14px}
+.form-label2{font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;display:block}
+.form-input2{width:100%;padding:10px 14px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;color:#1a1a2e;outline:none;transition:border .2s}
+.form-input2:focus{border-color:#4338ca;box-shadow:0 0 0 3px rgba(67,56,202,.1)}
+.upload-tabs{display:flex;background:#f3f4f6;border-radius:10px;padding:4px;margin-bottom:16px}
+.upload-tab{flex:1;padding:8px 14px;border-radius:7px;border:none;background:none;font-size:13px;font-weight:600;color:#6b7280;cursor:pointer;transition:all .2s}
+.upload-tab.active{background:#fff;color:#4338ca;box-shadow:0 1px 4px rgba(80,80,200,.12)}
+.drop-zone{border:2px dashed #c7d2fe;border-radius:14px;padding:28px 20px;text-align:center;background:#f8f7ff;cursor:pointer;transition:all .2s;position:relative}
+.drop-zone.dragover{border-color:#4338ca;background:#ede9fe}
+.drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.drop-icon{font-size:36px;margin-bottom:8px}
+.drop-title{font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:4px}
+.drop-sub{font-size:13px;color:#6b7280;margin-bottom:10px}
+.drop-hint{font-size:12px;color:#9ca3af;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:10px 14px;text-align:left;line-height:1.7}
+.drop-hint code{background:#f3f4f6;padding:1px 6px;border-radius:4px;font-size:11px;font-family:monospace}
+.excel-preview{background:#fff;border:1.5px solid #c7d2fe;border-radius:12px;overflow:hidden;margin-top:14px}
+.excel-preview-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#f5f3ff;border-bottom:1px solid #e5e7eb}
+.excel-preview-title{font-size:13px;font-weight:700;color:#4338ca;display:flex;align-items:center;gap:8px}
+.excel-preview-clear{font-size:12px;color:#ef4444;background:none;border:none;cursor:pointer;font-weight:600}
+.excel-preview table{width:100%;border-collapse:collapse;font-size:13px}
+.excel-preview th{background:#f8f7ff;padding:8px 14px;text-align:left;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;border-bottom:1px solid #e5e7eb}
+.excel-preview td{padding:9px 14px;border-bottom:.5px solid #f3f4f6;color:#374151}
+.excel-preview tr:last-child td{border-bottom:none}
+.excel-preview tr:nth-child(even) td{background:#fafafa}
+.preview-ok{color:#10b981}
+.preview-err{color:#ef4444}
+.import-btn{width:100%;margin-top:10px;padding:11px;background:#10b981;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+.import-btn:hover{background:#059669}
+.template-download{display:flex;align-items:center;gap:12px;background:#f0fdf4;border:1.5px solid #6ee7b7;border-radius:12px;padding:14px 16px;margin-bottom:12px}
+.template-icon{font-size:28px;flex-shrink:0}
+.template-info{flex:1}
+.template-title{font-size:14px;font-weight:700;color:#065f46}
+.template-sub{font-size:12px;color:#6b7280;margin-top:2px}
+.template-btn{padding:7px 16px;background:#10b981;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.questions-list{display:flex;flex-direction:column;gap:10px;margin-bottom:14px}
+.question-row{display:flex;gap:8px;align-items:center}
+.question-num{font-size:13px;font-weight:700;color:#6b7280;width:20px;flex-shrink:0}
+.q-text-input{flex:2;padding:8px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;color:#1a1a2e;outline:none}
+.q-text-input:focus{border-color:#4338ca}
+.q-ans-input{flex:1;padding:8px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;color:#1a1a2e;outline:none;text-align:center}
+.q-ans-input:focus{border-color:#10b981}
+.remove-q-btn{background:none;border:none;color:#ef4444;cursor:pointer;font-size:18px;padding:4px;line-height:1}
+.add-q-btn{background:#f0f4ff;border:1.5px dashed #c7d2fe;color:#4338ca;font-size:13px;font-weight:600;padding:10px;border-radius:8px;cursor:pointer;width:100%;transition:all .2s}
+.add-q-btn:hover{background:#ede9fe}
+.submit-ws-btn{background:#4338ca;color:#fff;border:none;border-radius:12px;padding:12px 28px;font-size:15px;font-weight:600;cursor:pointer;width:100%;transition:all .2s}
+.submit-ws-btn:hover{background:#3730a3}
+.ws-list-item{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:.5px solid #f3f4f6}
+.ws-list-item:last-child{border-bottom:none}
+.ws-list-name{font-size:14px;font-weight:600;color:#1a1a2e}
+.ws-list-meta{font-size:12px;color:#6b7280;margin-top:2px}
+.ws-toggle{padding:5px 12px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid;transition:all .2s}
+.ws-toggle.active{background:#d1fae5;color:#065f46;border-color:#6ee7b7}
+.ws-toggle.inactive{background:#fee2e2;color:#991b1b;border-color:#fca5a5}
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.stat-card{background:#f8f7ff;border-radius:12px;padding:16px;text-align:center}
+.stat-num{font-size:26px;font-weight:800;color:#4338ca}
+.stat-label{font-size:12px;color:#6b7280;margin-top:4px}
+.empty-state{text-align:center;padding:40px 20px;color:#9ca3af;font-size:14px}
+.empty-state span{font-size:36px;display:block;margin-bottom:10px}
+.results-table{width:100%;border-collapse:collapse}
+.results-table th{font-size:12px;font-weight:600;color:#6b7280;text-align:left;padding:8px 12px;background:#f8f7ff}
+.results-table td{font-size:13px;color:#374151;padding:10px 12px;border-bottom:.5px solid #f3f4f6}
+.results-table tr:last-child td{border-bottom:none}
+.score-pill{display:inline-block;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:700}
+.score-pill.high{background:#d1fae5;color:#065f46}
+.score-pill.mid{background:#fef3c7;color:#92400e}
+.score-pill.low{background:#fee2e2;color:#991b1b}
+.toast{position:fixed;top:20px;right:20px;background:#1a1a2e;color:#fff;padding:12px 20px;border-radius:12px;font-size:14px;font-weight:500;z-index:999;opacity:0;transform:translateY(-10px);transition:all .3s;pointer-events:none;max-width:300px}
+.toast.show{opacity:1;transform:translateY(0)}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const { createClient } = supabase;
+const sb = createClient(
+  'https://xzqxrpgecypykasuomyc.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh6cXhycGdlY3lweWthc3VvbXljIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0MDg3NTQsImV4cCI6MjA5Nzk4NDc1NH0.hgwlWUnynBVc4G2uVNwCqb5A98zElJusgMyLKf6RViw'
+);
+
+function showToast(msg, err=false){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.style.background=err?'#991b1b':'#1a1a2e';
+  t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3200);
+}
+const $=id=>document.getElementById(id);
+
+let S = {
+  view:'loading',
+  user:null, profile:null,
+  worksheets:[], submissions:[], wsResults:{},
+  currentWs:null, currentQ:0, answers:[],
+  tab:'worksheets', createTab:'manual', xlsxPreview:null,
+  newWs:{title:'',description:'',questions:[{text:'',answer:''}]},
+};
+function set(patch){ Object.assign(S,patch); render(); }
+
+// ── Render ───────────────────────────────────────────────────────────────────
+function render(){
+  const root=$('root');
+  if(S.view==='loading'){
+    root.innerHTML=`<div class="loading-screen"><div class="spinner"></div><p class="loading-text">Loading MathStar…</p></div>`;
+    return;
+  }
+  if(S.view==='auth'){ root.innerHTML=buildAuth(); bindAuth(); return; }
+  root.innerHTML=buildApp(); bindApp();
+}
+
+// ── Auth screen ──────────────────────────────────────────────────────────────
+function buildAuth(){
+  return `
+  <div class="auth-screen">
+    <div class="auth-card">
+      <span class="auth-star">⭐</span>
+      <div class="auth-title">MathStar</div>
+      <div class="auth-sub">Fun arithmetic worksheets for primary students.<br/>Solve sums, earn stars, climb the rankings!</div>
+      <div class="auth-error" id="auth-error"></div>
+      <button class="google-btn" id="google-btn">
+        <svg width="20" height="20" viewBox="0 0 48 48">
+          <path fill="#EA4335" d="M24 9.5c3.9 0 6.6 1.7 8.2 3.1l6-6C34.5 3.2 29.7 1 24 1 14.8 1 7 6.8 3.9 14.9l7 5.4C12.6 13.7 17.8 9.5 24 9.5z"/>
+          <path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.4c-.5 2.8-2.2 5.1-4.6 6.7l7.1 5.5c4.2-3.8 6.6-9.5 6.6-16.2z"/>
+          <path fill="#FBBC05" d="M10.9 28.6A14.6 14.6 0 0 1 9.5 24c0-1.6.3-3.1.8-4.5L3.3 14C1.2 17.7 0 22.2 0 24s1.2 6.3 3.3 10l7.6-5.4z"/>
+          <path fill="#34A853" d="M24 47c5.7 0 10.5-1.9 14-5.1l-7.1-5.5C29 37.9 26.6 38.5 24 38.5c-6.2 0-11.4-4.2-13.2-9.9l-7 5.4C7 41.2 14.8 47 24 47z"/>
+        </svg>
+        Continue with Google
+      </button>
+      <div class="auth-note">Sign in securely with your Google account. No password needed.</div>
+    </div>
+  </div>`;
+}
+
+function bindAuth(){
+  $('google-btn')?.addEventListener('click', async()=>{
+    const{error}=await sb.auth.signInWithOAuth({
+      provider:'google',
+      options:{redirectTo: window.location.href}
+    });
+    if(error){
+      const el=$('auth-error'); if(el){el.textContent=error.message;el.classList.add('show');}
+    }
+  });
+}
+
+// ── After login ──────────────────────────────────────────────────────────────
+async function afterLogin(user){
+  if(!user) return;
+  // Look up profile in students then teachers
+  let profile=null;
+  const{data:student}=await sb.from('students').select('*').eq('auth_id',user.id).maybeSingle();
+  if(student){ profile={...student,role:'student'}; }
+  else{
+    const{data:teacher}=await sb.from('teachers').select('*').eq('auth_id',user.id).maybeSingle();
+    if(teacher) profile={...teacher,role:'teacher'};
+  }
+  // First-time Google login — create student profile by default
+  if(!profile){
+    const name=user.user_metadata?.full_name||user.user_metadata?.name||user.email.split('@')[0];
+    const role=user.user_metadata?.role||'student';
+    const table=role==='teacher'?'teachers':'students';
+    const{data:created}=await sb.from(table).insert({auth_id:user.id,name,email:user.email,google_id:user.id}).select().single();
+    profile=created?{...created,role}:{id:user.id,name,email:user.email,role};
+  }
+  S.user=user; S.profile=profile; S.view='home'; S.tab='worksheets';
+  await loadData(); render();
+}
+
+// ── App shell ────────────────────────────────────────────────────────────────
+function buildApp(){
+  if(S.view==='quiz') return `<div class="app">${buildHeader()}<button class="btn-back" id="back-btn">← Back</button>${buildQuiz()}</div>`;
+  if(S.view==='result') return `<div class="app">${buildHeader()}<button class="btn-back" id="back-btn">← Back</button>${buildResult()}</div>`;
+  return `<div class="app">${buildHeader()}${buildNav()}${buildMain()}</div>`;
+}
+
+function buildHeader(){
+  const p=S.profile||{};
+  const initials=(p.name||'U').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+  const avatar=S.user?.user_metadata?.avatar_url
+    ?`<img src="${S.user.user_metadata.avatar_url}" alt=""/>`
+    :initials;
+  return `<div class="header">
+    <div class="logo">⭐ MathStar</div>
+    <div class="user-info">
+      <div class="avatar">${avatar}</div>
+      <div>
+        <div class="user-name">${p.name||p.email||'User'}</div>
+        <span class="role-badge">${p.role==='teacher'?'Teacher':'Student'}</span>
+      </div>
+      <button class="logout-btn" id="logout-btn">Sign out</button>
+    </div>
+  </div>`;
+}
+
+function buildNav(){
+  const tabs=S.profile?.role==='teacher'
+    ?[['worksheets','📋 Worksheets'],['create','➕ Create'],['results','📊 Results']]
+    :[['worksheets','📝 My Worksheets'],['scores','🏆 My Scores']];
+  return `<div class="nav">${tabs.map(([k,l])=>`<button class="nav-tab ${S.tab===k?'active':''}" data-tab="${k}">${l}</button>`).join('')}</div>`;
+}
+
+function buildMain(){
+  if(S.profile?.role==='teacher'){
+    if(S.tab==='worksheets') return buildTeacherWsList();
+    if(S.tab==='create') return buildCreateWs();
+    if(S.tab==='results') return buildTeacherResults();
+  }
+  if(S.tab==='worksheets') return buildStudentWsList();
+  if(S.tab==='scores') return buildStudentScores();
+  return '';
+}
+
+// ── Student views ────────────────────────────────────────────────────────────
+function buildStudentWsList(){
+  if(!S.worksheets.length) return `<div class="empty-state"><span>📭</span>No worksheets yet. Check back soon!</div>`;
+  const emojis=['🔢','➕','✖️','➗','🧮'];
+  return `<div class="section-title">Available worksheets</div>
+  <div class="worksheet-grid">
+  ${S.worksheets.filter(w=>w.is_active).map((w,i)=>{
+    const sub=S.submissions.find(s=>s.worksheet_id===w.id);
+    return `<div class="worksheet-card ${sub?'completed':''}" data-ws="${w.id}">
+      <div class="ws-emoji">${emojis[i%emojis.length]}</div>
+      ${sub?`<div class="ws-badge">✅</div>`:''}
+      <div class="ws-title">${w.title}</div>
+      <div class="ws-desc">${w.description||'Arithmetic practice'}</div>
+      <div class="ws-meta">
+        <span class="ws-questions">${w.q_count||0} questions</span>
+        ${sub?`<span class="ws-score ${sub.score>=50?'pass':'fail'}">${Math.round(sub.score)}%</span>`:''}
+      </div>
+    </div>`;
+  }).join('')}
+  </div>`;
+}
+
+function buildStudentScores(){
+  if(!S.submissions.length) return `<div class="empty-state"><span>🏆</span>No submissions yet. Complete a worksheet!</div>`;
+  return `<div class="section-title">Your scores</div>
+  ${S.submissions.map(s=>{
+    const ws=S.worksheets.find(w=>w.id===s.worksheet_id);
+    return `<div class="leaderboard" style="margin-bottom:12px;padding:16px 20px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div><div style="font-size:15px;font-weight:700">${ws?.title||'Worksheet'}</div>
+        <div style="font-size:12px;color:#6b7280">${new Date(s.submitted_at).toLocaleDateString()}</div></div>
+        <div style="text-align:right">
+          <div style="font-size:24px;font-weight:900;color:#4338ca">${Math.round(s.score)}%</div>
+          <div style="font-size:12px;color:#6b7280">${s.correct_count}/${s.total_questions} correct</div>
+        </div>
+      </div>
+      ${buildRanking(s.worksheet_id)}
+    </div>`;
+  }).join('')}`;
+}
+
+function buildRanking(wsId){
+  const sorted=[...(S.wsResults[wsId]||[])].sort((a,b)=>b.score-a.score);
+  if(!sorted.length) return '';
+  return `<div style="margin-top:14px;border-top:.5px solid #f3f4f6;padding-top:14px">
+    <div style="font-size:12px;font-weight:700;color:#6b7280;margin-bottom:10px;text-transform:uppercase">Class Ranking</div>
+    ${sorted.map((s,i)=>{
+      const isMe=s.student_id===S.profile?.id;
+      const rc=i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'rank-other';
+      const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':`#${i+1}`;
+      return `<div class="leaderboard-row">
+        <div class="rank-badge ${rc}">${medal}</div>
+        <div class="lb-name">${isMe?(S.profile?.name||'You'):(s.student_name||'Student')}${isMe?`<span class="lb-you">You</span>`:''}</div>
+        <div class="lb-score">${Math.round(s.score)}%</div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+// ── Teacher views ────────────────────────────────────────────────────────────
+function buildTeacherWsList(){
+  const ws=S.worksheets, subs=Object.values(S.wsResults).flat();
+  return `
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-num">${ws.length}</div><div class="stat-label">Worksheets</div></div>
+    <div class="stat-card"><div class="stat-num">${subs.length}</div><div class="stat-label">Submissions</div></div>
+    <div class="stat-card"><div class="stat-num">${subs.length?Math.round(subs.reduce((a,b)=>a+b.score,0)/subs.length):0}%</div><div class="stat-label">Avg Score</div></div>
+  </div>
+  <div class="teacher-panel">
+    <div class="section-title">All Worksheets</div>
+    ${ws.length?ws.map(w=>`
+      <div class="ws-list-item">
+        <div><div class="ws-list-name">${w.title}</div>
+        <div class="ws-list-meta">${w.q_count||0} questions · ${(S.wsResults[w.id]||[]).length} submissions</div></div>
+        <button class="ws-toggle ${w.is_active?'active':'inactive'}" data-toggle="${w.id}" data-active="${w.is_active}">${w.is_active?'Active':'Inactive'}</button>
+      </div>`).join(''):
+    `<div class="empty-state"><span>📋</span>No worksheets yet.</div>`}
+  </div>`;
+}
+
+function buildCreateWs(){
+  const qs=S.newWs.questions, isExcel=S.createTab==='excel';
+  return `<div class="teacher-panel">
+    <div class="section-title" style="margin-bottom:16px">New Worksheet</div>
+    <div class="form-group2">
+      <label class="form-label2">Title</label>
+      <input class="form-input2" id="ws-title" placeholder="e.g. Addition practice" value="${S.newWs.title}"/>
+    </div>
+    <div class="form-group2">
+      <label class="form-label2">Description (optional)</label>
+      <input class="form-input2" id="ws-desc" placeholder="e.g. Adding numbers up to 20" value="${S.newWs.description}"/>
+    </div>
+    <label class="form-label2">Questions source</label>
+    <div class="upload-tabs" style="margin-bottom:16px">
+      <button class="upload-tab ${!isExcel?'active':''}" data-ctab="manual">✏️ Type manually</button>
+      <button class="upload-tab ${isExcel?'active':''}" data-ctab="excel">📊 Upload Excel</button>
+    </div>
+    ${isExcel?buildExcelUpload():buildManualQs(qs)}
+    <button class="submit-ws-btn" id="submit-ws-btn" style="margin-top:16px">Publish Worksheet</button>
+  </div>`;
+}
+
+function buildExcelUpload(){
+  const preview=S.xlsxPreview;
+  return `<div>
+    <div class="template-download">
+      <div class="template-icon">📥</div>
+      <div class="template-info">
+        <div class="template-title">Download Excel template</div>
+        <div class="template-sub">Pre-formatted with Question and Answer columns</div>
+      </div>
+      <button class="template-btn" id="dl-template-btn">Download</button>
+    </div>
+    <div class="drop-zone" id="drop-zone">
+      <input type="file" id="xlsx-file-input" accept=".xlsx,.xls,.csv"/>
+      <div class="drop-icon">📊</div>
+      <div class="drop-title">Drop your Excel file here</div>
+      <div class="drop-sub">or click to browse</div>
+      <div class="drop-hint">Column A: <code>Question</code> &nbsp;·&nbsp; Column B: <code>Answer</code><br/>Row 1 = header. Supports <code>.xlsx</code> <code>.xls</code> <code>.csv</code></div>
+    </div>
+    ${preview?buildXlsxPreview(preview):''}
+  </div>`;
+}
+
+function buildXlsxPreview(preview){
+  const{rows,errors}=preview, valid=rows.filter(r=>r.ok);
+  return `<div class="excel-preview">
+    <div class="excel-preview-header">
+      <div class="excel-preview-title">📊 ${rows.length} rows &nbsp;<span class="preview-ok">✔ ${valid.length} valid</span>${errors.length?` &nbsp;<span class="preview-err">✗ ${errors.length} skipped</span>`:''}</div>
+      <button class="excel-preview-clear" id="clear-preview">✕ Clear</button>
+    </div>
+    <table><thead><tr><th>#</th><th>Question</th><th>Answer</th><th>Status</th></tr></thead>
+    <tbody>${rows.slice(0,20).map((r,i)=>`<tr>
+      <td style="color:#9ca3af">${i+1}</td><td>${r.question||'—'}</td><td>${r.answer||'—'}</td>
+      <td>${r.ok?`<span class="preview-ok">✔</span>`:`<span class="preview-err">✗</span>`}</td>
+    </tr>`).join('')}
+    ${rows.length>20?`<tr><td colspan="4" style="text-align:center;color:#9ca3af;padding:10px">…and ${rows.length-20} more</td></tr>`:''}</tbody></table>
+  </div>
+  ${valid.length?`<button class="import-btn" id="import-xlsx-btn">⬆ Import ${valid.length} questions</button>`:`<div style="color:#ef4444;font-size:13px;margin-top:8px;text-align:center">No valid rows found.</div>`}`;
+}
+
+function buildManualQs(qs){
+  return `<label class="form-label2">Questions</label>
+  <div style="display:flex;gap:8px;padding:6px 0;margin-bottom:4px">
+    <div style="width:24px"></div>
+    <div style="flex:2;font-size:12px;color:#6b7280;font-weight:600">Question</div>
+    <div style="flex:1;font-size:12px;color:#6b7280;font-weight:600;text-align:center">Answer</div>
+    <div style="width:30px"></div>
+  </div>
+  <div class="questions-list">
+  ${qs.map((q,i)=>`<div class="question-row">
+    <span class="question-num">${i+1}</span>
+    <input class="q-text-input" data-qi="${i}" data-field="text" placeholder="e.g. 7 + 8 = ?" value="${q.text}"/>
+    <input class="q-ans-input" data-qi="${i}" data-field="answer" placeholder="15" value="${q.answer}"/>
+    ${qs.length>1?`<button class="remove-q-btn" data-rm="${i}">×</button>`:`<div style="width:30px"></div>`}
+  </div>`).join('')}
+  </div>
+  <button class="add-q-btn" id="add-q-btn">+ Add question</button>`;
+}
+
+// ── Quiz ─────────────────────────────────────────────────────────────────────
+function buildQuiz(){
+  const ws=S.currentWs,qs=ws.questions||[],qi=S.currentQ,q=qs[qi],ans=S.answers[qi];
+  const pct=Math.round(((qi+(ans!==undefined?1:0))/qs.length)*100);
+  return `<div class="quiz-header">
+    <div class="quiz-title">${ws.title}</div>
+    <div class="quiz-progress">
+      <div class="progress-bar-wrap"><div class="progress-bar" style="width:${pct}%"></div></div>
+      <span class="progress-text">${qi+1} / ${qs.length}</span>
+    </div>
+  </div>
+  <div class="question-card">
+    <div class="question-number">Question ${qi+1}</div>
+    <div class="question-text">${q.question_text}</div>
+    <input class="answer-input" id="answer-input" type="number" placeholder="?" autocomplete="off" value="${ans!==undefined?ans:''}"/>
+  </div>
+  <div class="quiz-actions">
+    ${qi>0?`<button class="btn-secondary" id="prev-btn">← Previous</button>`:''}
+    <button class="btn-primary" id="next-btn">${qi===qs.length-1?'Submit ✓':'Next →'}</button>
+  </div>`;
+}
+
+// ── Result ───────────────────────────────────────────────────────────────────
+function buildResult(){
+  const ws=S.currentWs,qs=ws.questions||[];
+  const correct=S.answers.filter((a,i)=>a!==undefined&&String(a).trim()===String(qs[i].correct_answer).trim()).length;
+  const score=Math.round((correct/qs.length)*100);
+  const emoji=score>=80?'🌟':score>=50?'👍':'💪';
+  return `<div class="result-card">
+    <div class="result-emoji">${emoji}</div>
+    <div class="result-score">${score}%</div>
+    <div class="result-label">${score>=80?'Excellent work!':score>=50?'Good effort!':'Keep practising!'}</div>
+    <div class="result-breakdown">
+      <div class="breakdown-item"><div class="breakdown-num">${correct}</div><div class="breakdown-label">Correct</div></div>
+      <div class="breakdown-item"><div class="breakdown-num">${qs.length-correct}</div><div class="breakdown-label">Incorrect</div></div>
+    </div>
+  </div>
+  <div class="section-title">Question Review</div>
+  <div class="answers-list">
+  ${qs.map((q,i)=>{
+    const given=S.answers[i],isOk=given!==undefined&&String(given).trim()===String(q.correct_answer).trim();
+    return `<div class="answer-row">
+      <div class="answer-icon">${isOk?'✅':'❌'}</div>
+      <div class="answer-q">${q.question_text}</div>
+      <div class="answer-vals">
+        <div class="answer-given ${isOk?'correct':'wrong'}">${given!==undefined&&given!==''?given:'—'}</div>
+        ${!isOk?`<div class="answer-correct-val">Correct: ${q.correct_answer}</div>`:''}
+      </div>
+    </div>`;
+  }).join('')}
+  </div>
+  ${buildRanking(ws.id)}`;
+}
+
+function buildTeacherResults(){
+  const entries=Object.entries(S.wsResults);
+  if(!entries.length) return `<div class="empty-state"><span>📊</span>No submissions yet.</div>`;
+  return entries.map(([wsId,subs])=>{
+    const ws=S.worksheets.find(w=>w.id===wsId);
+    if(!subs.length) return '';
+    return `<div class="teacher-panel">
+      <div class="section-title" style="margin-bottom:14px">${ws?.title||'Worksheet'}</div>
+      <table class="results-table">
+        <thead><tr><th>Rank</th><th>Student</th><th>Score</th><th>Correct</th><th>Date</th></tr></thead>
+        <tbody>${[...subs].sort((a,b)=>b.score-a.score).map((s,i)=>{
+          const cls=s.score>=80?'high':s.score>=50?'mid':'low';
+          return `<tr>
+            <td>${i===0?'🥇':i===1?'🥈':i===2?'🥉':`#${i+1}`}</td>
+            <td>${s.student_name||'Student'}</td>
+            <td><span class="score-pill ${cls}">${Math.round(s.score)}%</span></td>
+            <td>${s.correct_count}/${s.total_questions}</td>
+            <td>${new Date(s.submitted_at).toLocaleDateString()}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>
+    </div>`;
+  }).join('');
+}
+
+// ── Event binding ────────────────────────────────────────────────────────────
+function bindApp(){
+  const on=(id,ev,fn)=>{const el=$(id);if(el)el.addEventListener(ev,fn)};
+  on('logout-btn','click',async()=>{
+    await sb.auth.signOut();
+    set({user:null,profile:null,view:'auth',tab:'worksheets',submissions:[],wsResults:{},worksheets:[]});
+  });
+  on('back-btn','click',()=>set({view:'home'}));
+  on('prev-btn','click',()=>{
+    const inp=$('answer-input'),cur=[...S.answers]; cur[S.currentQ]=inp?inp.value:undefined;
+    set({answers:cur,currentQ:S.currentQ-1});
+  });
+  on('next-btn','click',()=>{
+    const inp=$('answer-input'),cur=[...S.answers]; cur[S.currentQ]=inp?inp.value:'';
+    const qs=S.currentWs.questions||[];
+    if(S.currentQ<qs.length-1) set({answers:cur,currentQ:S.currentQ+1});
+    else submitQuiz(cur);
+  });
+  on('answer-input','keydown',e=>{if(e.key==='Enter')$('next-btn')?.click()});
+  on('add-q-btn','click',()=>set({newWs:{...S.newWs,questions:[...S.newWs.questions,{text:'',answer:''}]}}));
+  on('submit-ws-btn','click',createWorksheet);
+  on('clear-preview','click',()=>set({xlsxPreview:null}));
+  on('import-xlsx-btn','click',importXlsx);
+  on('dl-template-btn','click',downloadTemplate);
+  on('ws-title','input',e=>{S.newWs={...S.newWs,title:e.target.value}});
+  on('ws-desc','input',e=>{S.newWs={...S.newWs,description:e.target.value}});
+  document.querySelectorAll('.nav-tab').forEach(el=>el.addEventListener('click',e=>set({tab:e.target.dataset.tab})));
+  document.querySelectorAll('[data-ctab]').forEach(el=>el.addEventListener('click',e=>set({createTab:e.target.dataset.ctab,xlsxPreview:null})));
+  document.querySelectorAll('[data-ws]').forEach(el=>el.addEventListener('click',e=>startWs(e.currentTarget.dataset.ws)));
+  document.querySelectorAll('[data-toggle]').forEach(el=>el.addEventListener('click',e=>toggleWs(e.target.dataset.toggle,e.target.dataset.active==='true')));
+  document.querySelectorAll('[data-qi][data-field]').forEach(el=>el.addEventListener('input',e=>{
+    const{qi,field}=e.target.dataset,qs=[...S.newWs.questions];
+    qs[qi]={...qs[qi],[field]:e.target.value}; S.newWs={...S.newWs,questions:qs};
+  }));
+  document.querySelectorAll('[data-rm]').forEach(el=>el.addEventListener('click',e=>{
+    const i=+e.target.dataset.rm;
+    set({newWs:{...S.newWs,questions:S.newWs.questions.filter((_,idx)=>idx!==i)}});
+  }));
+  const dz=$('drop-zone');
+  if(dz){
+    dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('dragover')});
+    dz.addEventListener('dragleave',()=>dz.classList.remove('dragover'));
+    dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('dragover');const f=e.dataTransfer.files[0];if(f)parseXlsx(f)});
+  }
+  $('xlsx-file-input')?.addEventListener('change',e=>{const f=e.target.files[0];if(f)parseXlsx(f)});
+}
+
+// ── Data ─────────────────────────────────────────────────────────────────────
+async function loadData(){
+  try{
+    const{data:wsList}=await sb.from('worksheets').select('*,questions(count)').order('created_at',{ascending:false});
+    S.worksheets=(wsList||[]).map(w=>({...w,q_count:w.questions?.[0]?.count||0}));
+    if(S.profile?.role==='student'){
+      const{data:subs}=await sb.from('submissions').select('*').eq('student_id',S.profile.id);
+      S.submissions=subs||[];
+      const wsResults={};
+      for(const w of S.worksheets){
+        const{data:all}=await sb.from('submissions').select('score,correct_count,total_questions,submitted_at,student_id').eq('worksheet_id',w.id);
+        if(all?.length) wsResults[w.id]=all.map(s=>({...s,student_name:s.student_id===S.profile.id?(S.profile.name||'You'):'Classmate'}));
+      }
+      S.wsResults=wsResults;
+    }
+    if(S.profile?.role==='teacher'){
+      const wsResults={};
+      for(const w of S.worksheets){
+        const{data:all}=await sb.from('submissions').select('score,correct_count,total_questions,submitted_at,student_id').eq('worksheet_id',w.id);
+        const withNames=await Promise.all((all||[]).map(async s=>{
+          const{data:st}=await sb.from('students').select('name').eq('id',s.student_id).maybeSingle();
+          return{...s,student_name:st?.name||'Student'};
+        }));
+        wsResults[w.id]=withNames;
+      }
+      S.wsResults=wsResults;
+    }
+  }catch(e){console.warn('loadData',e);}
+}
+
+async function startWs(wsId){
+  const ws=S.worksheets.find(w=>w.id===wsId); if(!ws) return;
+  if(S.submissions.find(s=>s.worksheet_id===wsId)){showToast('You already submitted this worksheet!');return;}
+  const{data:qs}=await sb.from('questions').select('*').eq('worksheet_id',wsId).order('order_index');
+  S.currentWs={...ws,questions:qs||[]}; set({view:'quiz',currentQ:0,answers:[]});
+}
+
+async function submitQuiz(answers){
+  const ws=S.currentWs,qs=ws.questions||[];
+  const correct=answers.filter((a,i)=>a!==undefined&&String(a).trim()===String(qs[i].correct_answer).trim()).length;
+  const score=(correct/qs.length)*100;
+  try{
+    const{data:sub}=await sb.from('submissions').insert({
+      student_id:S.profile.id,worksheet_id:ws.id,
+      score,total_questions:qs.length,correct_count:correct
+    }).select().single();
+    if(sub){
+      await sb.from('submission_answers').insert(answers.map((a,i)=>({
+        submission_id:sub.id,question_id:qs[i].id,
+        student_answer:String(a||''),
+        is_correct:String(a||'').trim()===String(qs[i].correct_answer).trim()
+      })));
+      S.submissions=[...S.submissions,sub];
+    }
+    const{data:allSubs}=await sb.from('submissions').select('score,correct_count,total_questions,submitted_at,student_id').eq('worksheet_id',ws.id);
+    S.wsResults[ws.id]=(allSubs||[]).map(s=>({...s,student_name:s.student_id===S.profile.id?(S.profile.name||'You'):'Classmate'}));
+  }catch(e){console.warn('submitQuiz',e);}
+  set({view:'result',answers});
+}
+
+async function createWorksheet(){
+  const{title,description,questions}=S.newWs;
+  if(!title.trim()){showToast('Please add a title',true);return;}
+  const validQs=questions.filter(q=>q.text.trim()&&q.answer.trim());
+  if(!validQs.length){showToast('Add at least one question with an answer',true);return;}
+  try{
+    const{data:ws}=await sb.from('worksheets').insert({title,description,is_active:true,teacher_id:S.profile.id}).select().single();
+    if(ws){
+      await sb.from('questions').insert(validQs.map((q,i)=>({worksheet_id:ws.id,question_text:q.text,correct_answer:q.answer,order_index:i})));
+      showToast(`Worksheet published with ${validQs.length} questions!`);
+      S.newWs={title:'',description:'',questions:[{text:'',answer:''}]}; S.xlsxPreview=null;
+      await loadData(); set({tab:'worksheets'});
+    }
+  }catch(e){showToast('Error creating worksheet',true);}
+}
+
+async function toggleWs(wsId,isActive){
+  await sb.from('worksheets').update({is_active:!isActive}).eq('id',wsId);
+  await loadData(); render();
+}
+
+// ── Excel ────────────────────────────────────────────────────────────────────
+function parseXlsx(file){
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+      const sheet=wb.Sheets[wb.SheetNames[0]];
+      const raw=XLSX.utils.sheet_to_json(sheet,{header:1,defval:''});
+      if(!raw||raw.length<2){showToast('File appears empty.',true);return;}
+      const header=raw[0].map(c=>String(c).toLowerCase().trim());
+      let qCol=header.findIndex(h=>h.includes('question')||h==='q');
+      let aCol=header.findIndex(h=>h.includes('answer')||h==='a'||h==='ans');
+      const dataRows=(qCol>=0&&aCol>=0)?raw.slice(1):(()=>{qCol=0;aCol=1;showToast("No headers found — using columns A & B");return raw;})();
+      const rows=dataRows.map(r=>({
+        question:String(r[qCol]||'').trim(),answer:String(r[aCol]||'').trim(),
+        ok:!!(String(r[qCol]||'').trim()&&String(r[aCol]||'').trim()),err:''
+      })).filter(r=>r.question||r.answer);
+      set({xlsxPreview:{rows,errors:rows.filter(r=>!r.ok)}});
+    }catch(err){showToast('Could not read file.',true);}
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function importXlsx(){
+  const valid=(S.xlsxPreview?.rows||[]).filter(r=>r.ok);
+  if(!valid.length){showToast('No valid rows to import',true);return;}
+  set({newWs:{...S.newWs,questions:valid.map(r=>({text:r.question,answer:r.answer}))},createTab:'manual',xlsxPreview:null});
+  showToast(`✔ ${valid.length} questions imported!`);
+}
+
+function downloadTemplate(){
+  const ws=XLSX.utils.aoa_to_sheet([['Question','Answer'],['2 + 3 = ?','5'],['10 - 4 = ?','6'],['3 × 4 = ?','12'],['15 ÷ 3 = ?','5'],['7 + 8 = ?','15']]);
+  ws['!cols']=[{wch:32},{wch:16}];
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Worksheet');
+  XLSX.writeFile(wb,'MathStar_template.xlsx');
+}
+
+// ── Boot ─────────────────────────────────────────────────────────────────────
+(async()=>{
+  render(); // show spinner
+  const{data:{session}}=await sb.auth.getSession();
+  if(session?.user) await afterLogin(session.user);
+  else set({view:'auth'});
+
+  sb.auth.onAuthStateChange(async(event,session)=>{
+    if(event==='SIGNED_IN'&&session?.user&&S.view==='auth') await afterLogin(session.user);
+    if(event==='SIGNED_OUT') set({view:'auth',user:null,profile:null,submissions:[],wsResults:{},worksheets:[]});
+  });
+})();
+</script>
+</body>
+</html>
