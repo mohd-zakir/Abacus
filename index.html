@@ -607,16 +607,16 @@ function buildResult(){
   const score=Math.round((correct/qs.length)*100);
   const emoji=score>=80?'🌟':score>=50?'👍':'💪';
   const p=S.profile||{};
-  const infoPills=[
-    p.name?`👤 ${p.name}`:'',
+  const gradePills=[
     p.grade?`📚 ${p.grade}`:'',
     p.class?`🏫 Class ${p.class}`:'',
   ].filter(Boolean);
   return`<div class="result-card">
     <div class="result-emoji">${emoji}</div>
+    ${p.name?`<div style="font-size:22px;font-weight:900;color:#1a1a2e;margin-bottom:6px;letter-spacing:-.3px">${p.name}</div>`:''}
     <div class="result-score">${score}%</div>
     <div class="result-label">${score>=80?'Excellent work!':score>=50?'Good effort!':'Keep practising!'}</div>
-    ${infoPills.length?`<div class="result-student-info">${infoPills.map(p=>`<span class="result-info-pill">${p}</span>`).join('')}</div>`:''}
+    ${gradePills.length?`<div class="result-student-info">${gradePills.map(g=>`<span class="result-info-pill">${g}</span>`).join('')}</div>`:''}
     <div class="result-breakdown">
       <div class="breakdown-item"><div class="breakdown-num">${correct}</div><div class="breakdown-label">Correct</div></div>
       <div class="breakdown-item"><div class="breakdown-num">${qs.length-correct}</div><div class="breakdown-label">Incorrect</div></div>
