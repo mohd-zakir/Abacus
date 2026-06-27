@@ -6,8 +6,8 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
-<title>MathStar</title>
-<!-- v4.0 email-password-auth -->
+<title>Abacus-HomeWork</title>
+<!-- v5.0 -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -18,20 +18,16 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f0f4ff;min-height:100v
 .auth-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;background:#f0f4ff}
 .auth-card{background:#fff;border-radius:28px;padding:48px 40px;box-shadow:0 4px 24px rgba(80,80,200,.10);max-width:420px;width:100%;text-align:center}
 .auth-star{font-size:64px;margin-bottom:16px;display:block}
-.auth-title{font-size:32px;font-weight:900;color:#1a1a2e;margin-bottom:10px;letter-spacing:-.5px}
+.auth-title{font-size:28px;font-weight:900;color:#1a1a2e;margin-bottom:10px;letter-spacing:-.5px}
 .auth-sub{font-size:14px;color:#6b7280;line-height:1.7;margin-bottom:28px}
 .auth-tabs{display:flex;background:#f3f4f6;border-radius:10px;padding:4px;margin-bottom:24px}
 .auth-tab{flex:1;padding:8px;border-radius:7px;border:none;background:none;font-size:13px;font-weight:600;color:#6b7280;cursor:pointer;transition:all .2s}
 .auth-tab.active{background:#fff;color:#4338ca;box-shadow:0 1px 4px rgba(80,80,200,.12)}
 .auth-form-group{margin-bottom:14px;text-align:left}
+.auth-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
 .auth-label{font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;display:block}
 .auth-input{width:100%;padding:12px 14px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;color:#1a1a2e;outline:none;transition:border .2s}
 .auth-input:focus{border-color:#4338ca;box-shadow:0 0 0 3px rgba(67,56,202,.1)}
-.role-select{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
-.role-option{border:2px solid #e5e7eb;border-radius:10px;padding:12px;text-align:center;cursor:pointer;transition:all .2s}
-.role-option.selected{border-color:#4338ca;background:#f5f3ff}
-.role-option-icon{font-size:22px;margin-bottom:4px}
-.role-option-label{font-size:13px;font-weight:600;color:#374151}
 .auth-btn{width:100%;padding:13px;background:#4338ca;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;margin-top:4px}
 .auth-btn:hover{background:#3730a3}
 .auth-btn:disabled{background:#c7d2fe;cursor:not-allowed}
@@ -50,10 +46,12 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f0f4ff;min-height:100v
 /* ── App shell ── */
 .app{max-width:900px;margin:0 auto;padding:16px}
 .header{display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:16px;padding:14px 20px;margin-bottom:20px;box-shadow:0 2px 8px rgba(80,80,200,.08)}
-.logo{display:flex;align-items:center;gap:8px;font-size:20px;font-weight:700;color:#4338ca}
+.logo{display:flex;align-items:center;gap:8px;font-size:18px;font-weight:800;color:#4338ca}
 .user-info{display:flex;align-items:center;gap:10px}
-.avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#4338ca,#7c3aed);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;overflow:hidden;flex-shrink:0}
-.user-name{font-size:14px;font-weight:500;color:#374151}
+.avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#4338ca,#7c3aed);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0}
+.user-meta{display:flex;flex-direction:column;align-items:flex-end}
+.user-name{font-size:14px;font-weight:600;color:#374151}
+.user-sub{font-size:11px;color:#9ca3af}
 .role-badge{font-size:11px;padding:2px 8px;border-radius:20px;background:#ede9fe;color:#4338ca;font-weight:600}
 .logout-btn{font-size:12px;color:#6b7280;cursor:pointer;border:none;background:none;padding:4px 8px;border-radius:6px}
 .logout-btn:hover{background:#f3f4f6}
@@ -101,7 +99,9 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f0f4ff;min-height:100v
 .result-card{background:#fff;border-radius:20px;padding:32px;box-shadow:0 2px 8px rgba(80,80,200,.07);text-align:center;margin-bottom:16px}
 .result-emoji{font-size:56px;margin-bottom:12px}
 .result-score{font-size:48px;font-weight:900;color:#4338ca;margin-bottom:4px}
-.result-label{color:#6b7280;font-size:15px;margin-bottom:24px}
+.result-label{color:#6b7280;font-size:15px;margin-bottom:20px}
+.result-student-info{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:20px}
+.result-info-pill{background:#f0f4ff;border:1px solid #c7d2fe;border-radius:20px;padding:5px 14px;font-size:13px;font-weight:600;color:#4338ca}
 .result-breakdown{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px}
 .breakdown-item{background:#f8f7ff;border-radius:12px;padding:16px}
 .breakdown-num{font-size:24px;font-weight:800;color:#4338ca}
@@ -125,7 +125,8 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f0f4ff;min-height:100v
 .rank-2{background:#f3f4f6;color:#374151}
 .rank-3{background:#fef3c7;color:#b45309}
 .rank-other{background:#f0f4ff;color:#4338ca}
-.lb-name{flex:1;font-size:15px;font-weight:600;color:#1a1a2e}
+.lb-name{flex:1;font-size:14px;font-weight:600;color:#1a1a2e}
+.lb-meta{font-size:11px;color:#9ca3af;font-weight:400}
 .lb-score{font-size:15px;font-weight:700;color:#4338ca}
 .lb-you{font-size:11px;color:#7c3aed;background:#ede9fe;padding:2px 8px;border-radius:20px;margin-left:6px}
 
@@ -181,9 +182,12 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f0f4ff;min-height:100v
 .ws-list-item:last-child{border-bottom:none}
 .ws-list-name{font-size:14px;font-weight:600;color:#1a1a2e}
 .ws-list-meta{font-size:12px;color:#6b7280;margin-top:2px}
+.ws-actions{display:flex;gap:8px;align-items:center}
 .ws-toggle{padding:5px 12px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid;transition:all .2s}
 .ws-toggle.active{background:#d1fae5;color:#065f46;border-color:#6ee7b7}
 .ws-toggle.inactive{background:#fee2e2;color:#991b1b;border-color:#fca5a5}
+.ws-delete-btn{padding:5px 10px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid #fca5a5;background:#fff;color:#ef4444;transition:all .2s}
+.ws-delete-btn:hover{background:#fee2e2}
 .stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
 .stat-card{background:#f8f7ff;border-radius:12px;padding:16px;text-align:center}
 .stat-num{font-size:26px;font-weight:800;color:#4338ca}
@@ -198,6 +202,13 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f0f4ff;min-height:100v
 .score-pill.high{background:#d1fae5;color:#065f46}
 .score-pill.mid{background:#fef3c7;color:#92400e}
 .score-pill.low{background:#fee2e2;color:#991b1b}
+.confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:100}
+.confirm-box{background:#fff;border-radius:16px;padding:28px;max-width:360px;width:90%;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.2)}
+.confirm-title{font-size:17px;font-weight:700;color:#1a1a2e;margin-bottom:8px}
+.confirm-sub{font-size:13px;color:#6b7280;margin-bottom:24px}
+.confirm-btns{display:flex;gap:10px;justify-content:center}
+.confirm-cancel{padding:10px 24px;background:#f3f4f6;color:#374151;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer}
+.confirm-delete{padding:10px 24px;background:#ef4444;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer}
 .toast{position:fixed;top:20px;right:20px;background:#1a1a2e;color:#fff;padding:12px 20px;border-radius:12px;font-size:14px;font-weight:500;z-index:999;opacity:0;transform:translateY(-10px);transition:all .3s;pointer-events:none;max-width:300px}
 .toast.show{opacity:1;transform:translateY(0)}
 </style>
@@ -220,29 +231,33 @@ function showToast(msg,err=false){
 const $=id=>document.getElementById(id);
 
 let S={
-  view:'loading',authTab:'login',authRole:'student',
+  view:'loading',authTab:'login',
   user:null,profile:null,
   worksheets:[],submissions:[],wsResults:{},
   currentWs:null,currentQ:0,answers:[],
   tab:'worksheets',createTab:'manual',xlsxPreview:null,
   newWs:{title:'',description:'',questions:[{text:'',answer:''}]},
+  deleteConfirm:null,
 };
 function set(patch){Object.assign(S,patch);render();}
 
 // ── Render ───────────────────────────────────────────────────────────────────
 function render(){
   const root=$('root');
-  if(S.view==='loading'){root.innerHTML=`<div class="loading-screen"><div class="spinner"></div><p class="loading-text">Loading MathStar…</p></div>`;return;}
+  if(S.view==='loading'){root.innerHTML=`<div class="loading-screen"><div class="spinner"></div><p class="loading-text">Loading Abacus-HomeWork…</p></div>`;return;}
   if(S.view==='auth'){root.innerHTML=buildAuth();bindAuth();return;}
-  root.innerHTML=buildApp();bindApp();
+  let html=buildApp();
+  if(S.deleteConfirm) html+=buildConfirm();
+  root.innerHTML=html;
+  bindApp();
 }
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
 function buildAuth(){
   const isLogin=S.authTab==='login';
   return`<div class="auth-screen"><div class="auth-card">
-    <span class="auth-star">⭐</span>
-    <div class="auth-title">MathStar</div>
+    <span class="auth-star">🧮</span>
+    <div class="auth-title">Abacus-HomeWork</div>
     <div class="auth-sub">Fun arithmetic worksheets for primary students.<br/>Solve sums, earn stars, climb the rankings!</div>
     <div class="auth-tabs">
       <button class="auth-tab ${isLogin?'active':''}" id="tab-login">Sign in</button>
@@ -251,20 +266,19 @@ function buildAuth(){
     <div class="auth-error" id="auth-error"></div>
     <div class="auth-success" id="auth-success"></div>
     ${!isLogin?`
-    <div style="text-align:left;margin-bottom:14px">
-      <label class="auth-label">I am a…</label>
-      <div class="role-select">
-        <div class="role-option ${S.authRole==='student'?'selected':''}" data-role="student">
-          <div class="role-option-icon">🎒</div><div class="role-option-label">Student</div>
-        </div>
-        <div class="role-option ${S.authRole==='teacher'?'selected':''}" data-role="teacher">
-          <div class="role-option-icon">📋</div><div class="role-option-label">Teacher</div>
-        </div>
-      </div>
-    </div>
     <div class="auth-form-group">
       <label class="auth-label">Full name</label>
       <input class="auth-input" id="auth-name" type="text" placeholder="Alex Johnson"/>
+    </div>
+    <div class="auth-row">
+      <div>
+        <label class="auth-label">Grade</label>
+        <input class="auth-input" id="auth-grade" type="text" placeholder="e.g. Grade 3"/>
+      </div>
+      <div>
+        <label class="auth-label">Class</label>
+        <input class="auth-input" id="auth-class" type="text" placeholder="e.g. A or Blue"/>
+      </div>
     </div>`:''}
     <div class="auth-form-group">
       <label class="auth-label">Email address</label>
@@ -282,10 +296,11 @@ function buildAuth(){
 function bindAuth(){
   $('tab-login')?.addEventListener('click',()=>set({authTab:'login'}));
   $('tab-signup')?.addEventListener('click',()=>set({authTab:'signup'}));
-  document.querySelectorAll('.role-option').forEach(el=>el.addEventListener('click',()=>set({authRole:el.dataset.role})));
   $('auth-submit')?.addEventListener('click',handleEmailAuth);
   $('forgot-btn')?.addEventListener('click',handleForgotPassword);
-  ['auth-email','auth-password','auth-name'].forEach(id=>$(id)?.addEventListener('keydown',e=>{if(e.key==='Enter')handleEmailAuth();}));
+  ['auth-email','auth-password','auth-name','auth-grade','auth-class'].forEach(id=>
+    $(id)?.addEventListener('keydown',e=>{if(e.key==='Enter')handleEmailAuth();})
+  );
 }
 
 function showAuthError(msg){const el=$('auth-error');if(el){el.textContent=msg;el.classList.add('show');}}
@@ -305,11 +320,13 @@ async function handleEmailAuth(){
     await afterLogin(data.user);
   } else {
     const name=$('auth-name')?.value.trim();
+    const grade=$('auth-grade')?.value.trim()||'';
+    const cls=$('auth-class')?.value.trim()||'';
     if(!name){showAuthError('Please enter your name.');btn.disabled=false;btn.textContent='Create account';return;}
     if(password.length<6){showAuthError('Password must be at least 6 characters.');btn.disabled=false;btn.textContent='Create account';return;}
-    const{data,error}=await sb.auth.signUp({email,password,options:{data:{name,role:S.authRole}}});
+    const{data,error}=await sb.auth.signUp({email,password,options:{data:{name,role:'student',grade,class:cls}}});
     if(error){showAuthError(error.message);btn.disabled=false;btn.textContent='Create account';return;}
-    await createProfile(data.user,name,email,S.authRole);
+    await createProfile(data.user,name,email,'student',grade,cls);
     showAuthSuccess('Account created! Check your email to confirm, then sign in.');
     btn.disabled=false;btn.textContent='Create account';
   }
@@ -324,13 +341,15 @@ async function handleForgotPassword(){
   else showAuthSuccess('Password reset email sent! Check your inbox.');
 }
 
-async function createProfile(user,name,email,role){
+async function createProfile(user,name,email,role,grade='',cls=''){
   if(!user)return;
   try{
     const table=role==='teacher'?'teachers':'students';
     const{data:existing}=await sb.from(table).select('id').eq('auth_id',user.id).maybeSingle();
     if(existing)return;
-    await sb.from(table).insert({auth_id:user.id,name,email,google_id:user.id});
+    const row={auth_id:user.id,name,email,google_id:user.id};
+    if(role==='student'){row.grade=grade;row.class=cls;}
+    await sb.from(table).insert(row);
   }catch(e){console.warn('createProfile',e);}
 }
 
@@ -345,10 +364,11 @@ async function afterLogin(user){
   }
   if(!profile){
     const name=user.user_metadata?.name||user.email.split('@')[0];
-    const role=user.user_metadata?.role||'student';
-    await createProfile(user,name,user.email,role);
-    const{data:newP}=await sb.from(role==='teacher'?'teachers':'students').select('*').eq('auth_id',user.id).maybeSingle();
-    profile=newP?{...newP,role}:{id:user.id,name,email:user.email,role};
+    const grade=user.user_metadata?.grade||'';
+    const cls=user.user_metadata?.class||'';
+    await createProfile(user,name,user.email,'student',grade,cls);
+    const{data:newP}=await sb.from('students').select('*').eq('auth_id',user.id).maybeSingle();
+    profile=newP?{...newP,role:'student'}:{id:user.id,name,email:user.email,role:'student',grade,class:cls};
   }
   S.user=user;S.profile=profile;S.view='home';S.tab='worksheets';
   await loadData();render();
@@ -364,12 +384,15 @@ function buildApp(){
 function buildHeader(){
   const p=S.profile||{};
   const initials=(p.name||'U').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+  const sub=p.role==='student'&&(p.grade||p.class)?[p.grade,p.class].filter(Boolean).join(' · '):'';
   return`<div class="header">
-    <div class="logo">⭐ MathStar</div>
+    <div class="logo">🧮 Abacus-HomeWork</div>
     <div class="user-info">
+      <div class="user-meta" style="text-align:right">
+        <div class="user-name">${p.name||p.email||'User'}</div>
+        ${sub?`<div class="user-sub">${sub}</div>`:`<span class="role-badge">${p.role==='teacher'?'Teacher':'Student'}</span>`}
+      </div>
       <div class="avatar">${initials}</div>
-      <div><div class="user-name">${p.name||p.email||'User'}</div>
-      <span class="role-badge">${p.role==='teacher'?'Teacher':'Student'}</span></div>
       <button class="logout-btn" id="logout-btn">Sign out</button>
     </div>
   </div>`;
@@ -393,6 +416,7 @@ function buildMain(){
   return'';
 }
 
+// ── Student views ─────────────────────────────────────────────────────────────
 function buildStudentWsList(){
   if(!S.worksheets.length)return`<div class="empty-state"><span>📭</span>No worksheets yet. Check back soon!</div>`;
   const emojis=['🔢','➕','✖️','➗','🧮'];
@@ -442,15 +466,21 @@ function buildRanking(wsId){
       const isMe=s.student_id===S.profile?.id;
       const rc=i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'rank-other';
       const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':`#${i+1}`;
+      const meta=[s.student_grade,s.student_class].filter(Boolean).join(' · ');
       return`<div class="leaderboard-row">
         <div class="rank-badge ${rc}">${medal}</div>
-        <div class="lb-name">${isMe?(S.profile?.name||'You'):(s.student_name||'Student')}${isMe?`<span class="lb-you">You</span>`:''}</div>
+        <div class="lb-name">
+          ${isMe?(S.profile?.name||'You'):(s.student_name||'Student')}
+          ${isMe?`<span class="lb-you">You</span>`:''}
+          ${meta?`<span class="lb-meta"> · ${meta}</span>`:''}
+        </div>
         <div class="lb-score">${Math.round(s.score)}%</div>
       </div>`;
     }).join('')}
   </div>`;
 }
 
+// ── Teacher views ─────────────────────────────────────────────────────────────
 function buildTeacherWsList(){
   const ws=S.worksheets,subs=Object.values(S.wsResults).flat();
   return`
@@ -465,7 +495,10 @@ function buildTeacherWsList(){
       <div class="ws-list-item">
         <div><div class="ws-list-name">${w.title}</div>
         <div class="ws-list-meta">${w.q_count||0} questions · ${(S.wsResults[w.id]||[]).length} submissions</div></div>
-        <button class="ws-toggle ${w.is_active?'active':'inactive'}" data-toggle="${w.id}" data-active="${w.is_active}">${w.is_active?'Active':'Inactive'}</button>
+        <div class="ws-actions">
+          <button class="ws-toggle ${w.is_active?'active':'inactive'}" data-toggle="${w.id}" data-active="${w.is_active}">${w.is_active?'Active':'Inactive'}</button>
+          <button class="ws-delete-btn" data-delete="${w.id}" data-title="${w.title}">🗑 Delete</button>
+        </div>
       </div>`).join(''):
     `<div class="empty-state"><span>📋</span>No worksheets yet.</div>`}
   </div>`;
@@ -545,6 +578,7 @@ function buildManualQs(qs){
   <button class="add-q-btn" id="add-q-btn">+ Add question</button>`;
 }
 
+// ── Quiz ──────────────────────────────────────────────────────────────────────
 function buildQuiz(){
   const ws=S.currentWs,qs=ws.questions||[],qi=S.currentQ,q=qs[qi],ans=S.answers[qi];
   const pct=Math.round(((qi+(ans!==undefined?1:0))/qs.length)*100);
@@ -566,15 +600,23 @@ function buildQuiz(){
   </div>`;
 }
 
+// ── Result ────────────────────────────────────────────────────────────────────
 function buildResult(){
   const ws=S.currentWs,qs=ws.questions||[];
   const correct=S.answers.filter((a,i)=>a!==undefined&&String(a).trim()===String(qs[i].correct_answer).trim()).length;
   const score=Math.round((correct/qs.length)*100);
   const emoji=score>=80?'🌟':score>=50?'👍':'💪';
+  const p=S.profile||{};
+  const infoPills=[
+    p.name?`👤 ${p.name}`:'',
+    p.grade?`📚 ${p.grade}`:'',
+    p.class?`🏫 Class ${p.class}`:'',
+  ].filter(Boolean);
   return`<div class="result-card">
     <div class="result-emoji">${emoji}</div>
     <div class="result-score">${score}%</div>
     <div class="result-label">${score>=80?'Excellent work!':score>=50?'Good effort!':'Keep practising!'}</div>
+    ${infoPills.length?`<div class="result-student-info">${infoPills.map(p=>`<span class="result-info-pill">${p}</span>`).join('')}</div>`:''}
     <div class="result-breakdown">
       <div class="breakdown-item"><div class="breakdown-num">${correct}</div><div class="breakdown-label">Correct</div></div>
       <div class="breakdown-item"><div class="breakdown-num">${qs.length-correct}</div><div class="breakdown-label">Incorrect</div></div>
@@ -606,12 +648,14 @@ function buildTeacherResults(){
     return`<div class="teacher-panel">
       <div class="section-title" style="margin-bottom:14px">${ws?.title||'Worksheet'}</div>
       <table class="results-table">
-        <thead><tr><th>Rank</th><th>Student</th><th>Score</th><th>Correct</th><th>Date</th></tr></thead>
+        <thead><tr><th>Rank</th><th>Student</th><th>Grade</th><th>Class</th><th>Score</th><th>Correct</th><th>Date</th></tr></thead>
         <tbody>${[...subs].sort((a,b)=>b.score-a.score).map((s,i)=>{
           const cls=s.score>=80?'high':s.score>=50?'mid':'low';
           return`<tr>
             <td>${i===0?'🥇':i===1?'🥈':i===2?'🥉':`#${i+1}`}</td>
             <td>${s.student_name||'Student'}</td>
+            <td>${s.student_grade||'—'}</td>
+            <td>${s.student_class||'—'}</td>
             <td><span class="score-pill ${cls}">${Math.round(s.score)}%</span></td>
             <td>${s.correct_count}/${s.total_questions}</td>
             <td>${new Date(s.submitted_at).toLocaleDateString()}</td>
@@ -622,7 +666,22 @@ function buildTeacherResults(){
   }).join('');
 }
 
-// ── Events ───────────────────────────────────────────────────────────────────
+// ── Delete confirm ────────────────────────────────────────────────────────────
+function buildConfirm(){
+  const{id,title}=S.deleteConfirm;
+  return`<div class="confirm-overlay" id="confirm-overlay">
+    <div class="confirm-box">
+      <div class="confirm-title">Delete worksheet?</div>
+      <div class="confirm-sub">"${title}" and all its questions and submissions will be permanently deleted.</div>
+      <div class="confirm-btns">
+        <button class="confirm-cancel" id="confirm-cancel">Cancel</button>
+        <button class="confirm-delete" id="confirm-delete" data-id="${id}">Delete</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── Events ────────────────────────────────────────────────────────────────────
 function bindApp(){
   const on=(id,ev,fn)=>{const el=$(id);if(el)el.addEventListener(ev,fn)};
   on('logout-btn','click',async()=>{
@@ -648,10 +707,22 @@ function bindApp(){
   on('dl-template-btn','click',downloadTemplate);
   on('ws-title','input',e=>{S.newWs={...S.newWs,title:e.target.value}});
   on('ws-desc','input',e=>{S.newWs={...S.newWs,description:e.target.value}});
+  on('confirm-cancel','click',()=>set({deleteConfirm:null}));
+  on('confirm-delete','click',async e=>{
+    const id=e.target.dataset.id;
+    await deleteWorksheet(id);
+    set({deleteConfirm:null});
+  });
+  on('confirm-overlay','click',e=>{if(e.target.id==='confirm-overlay')set({deleteConfirm:null});});
+
   document.querySelectorAll('.nav-tab').forEach(el=>el.addEventListener('click',e=>set({tab:e.target.dataset.tab})));
   document.querySelectorAll('[data-ctab]').forEach(el=>el.addEventListener('click',e=>set({createTab:e.target.dataset.ctab,xlsxPreview:null})));
   document.querySelectorAll('[data-ws]').forEach(el=>el.addEventListener('click',e=>startWs(e.currentTarget.dataset.ws)));
   document.querySelectorAll('[data-toggle]').forEach(el=>el.addEventListener('click',e=>toggleWs(e.target.dataset.toggle,e.target.dataset.active==='true')));
+  document.querySelectorAll('.ws-delete-btn').forEach(el=>el.addEventListener('click',e=>{
+    e.stopPropagation();
+    set({deleteConfirm:{id:el.dataset.delete,title:el.dataset.title}});
+  }));
   document.querySelectorAll('[data-qi][data-field]').forEach(el=>el.addEventListener('input',e=>{
     const{qi,field}=e.target.dataset,qs=[...S.newWs.questions];
     qs[qi]={...qs[qi],[field]:e.target.value};S.newWs={...S.newWs,questions:qs};
@@ -669,7 +740,7 @@ function bindApp(){
   $('xlsx-file-input')?.addEventListener('change',e=>{const f=e.target.files[0];if(f)parseXlsx(f)});
 }
 
-// ── Data ─────────────────────────────────────────────────────────────────────
+// ── Data ──────────────────────────────────────────────────────────────────────
 async function loadData(){
   try{
     const{data:wsList}=await sb.from('worksheets').select('*,questions(count)').order('created_at',{ascending:false});
@@ -680,7 +751,14 @@ async function loadData(){
       const wsResults={};
       for(const w of S.worksheets){
         const{data:all}=await sb.from('submissions').select('score,correct_count,total_questions,submitted_at,student_id').eq('worksheet_id',w.id);
-        if(all?.length)wsResults[w.id]=all.map(s=>({...s,student_name:s.student_id===S.profile.id?(S.profile.name||'You'):'Classmate'}));
+        if(all?.length){
+          const withInfo=await Promise.all(all.map(async s=>{
+            if(s.student_id===S.profile.id) return{...s,student_name:S.profile.name,student_grade:S.profile.grade||'',student_class:S.profile.class||''};
+            const{data:st}=await sb.from('students').select('name,grade,class').eq('id',s.student_id).maybeSingle();
+            return{...s,student_name:st?.name||'Classmate',student_grade:st?.grade||'',student_class:st?.class||''};
+          }));
+          wsResults[w.id]=withInfo;
+        }
       }
       S.wsResults=wsResults;
     }
@@ -689,8 +767,8 @@ async function loadData(){
       for(const w of S.worksheets){
         const{data:all}=await sb.from('submissions').select('score,correct_count,total_questions,submitted_at,student_id').eq('worksheet_id',w.id);
         const withNames=await Promise.all((all||[]).map(async s=>{
-          const{data:st}=await sb.from('students').select('name').eq('id',s.student_id).maybeSingle();
-          return{...s,student_name:st?.name||'Student'};
+          const{data:st}=await sb.from('students').select('name,grade,class').eq('id',s.student_id).maybeSingle();
+          return{...s,student_name:st?.name||'Student',student_grade:st?.grade||'',student_class:st?.class||''};
         }));
         wsResults[w.id]=withNames;
       }
@@ -723,7 +801,12 @@ async function submitQuiz(answers){
       S.submissions=[...S.submissions,sub];
     }
     const{data:allSubs}=await sb.from('submissions').select('score,correct_count,total_questions,submitted_at,student_id').eq('worksheet_id',ws.id);
-    S.wsResults[ws.id]=(allSubs||[]).map(s=>({...s,student_name:s.student_id===S.profile.id?(S.profile.name||'You'):'Classmate'}));
+    const withInfo=await Promise.all((allSubs||[]).map(async s=>{
+      if(s.student_id===S.profile.id) return{...s,student_name:S.profile.name,student_grade:S.profile.grade||'',student_class:S.profile.class||''};
+      const{data:st}=await sb.from('students').select('name,grade,class').eq('id',s.student_id).maybeSingle();
+      return{...s,student_name:st?.name||'Classmate',student_grade:st?.grade||'',student_class:st?.class||''};
+    }));
+    S.wsResults[ws.id]=withInfo;
   }catch(e){console.warn('submitQuiz',e);}
   set({view:'result',answers});
 }
@@ -749,7 +832,23 @@ async function toggleWs(wsId,isActive){
   await loadData();render();
 }
 
-// ── Excel ────────────────────────────────────────────────────────────────────
+async function deleteWorksheet(wsId){
+  try{
+    // Delete in order due to FK constraints
+    const{data:subs}=await sb.from('submissions').select('id').eq('worksheet_id',wsId);
+    if(subs?.length){
+      const subIds=subs.map(s=>s.id);
+      await sb.from('submission_answers').delete().in('submission_id',subIds);
+      await sb.from('submissions').delete().eq('worksheet_id',wsId);
+    }
+    await sb.from('questions').delete().eq('worksheet_id',wsId);
+    await sb.from('worksheets').delete().eq('id',wsId);
+    showToast('Worksheet deleted.');
+    await loadData();render();
+  }catch(e){showToast('Error deleting worksheet',true);console.warn(e);}
+}
+
+// ── Excel ─────────────────────────────────────────────────────────────────────
 function parseXlsx(file){
   const reader=new FileReader();
   reader.onload=e=>{
@@ -783,10 +882,10 @@ function downloadTemplate(){
   const ws=XLSX.utils.aoa_to_sheet([['Question','Answer'],['2 + 3 = ?','5'],['10 - 4 = ?','6'],['3 × 4 = ?','12'],['15 ÷ 3 = ?','5'],['7 + 8 = ?','15']]);
   ws['!cols']=[{wch:32},{wch:16}];
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Worksheet');
-  XLSX.writeFile(wb,'MathStar_template.xlsx');
+  XLSX.writeFile(wb,'AbacusHomeWork_template.xlsx');
 }
 
-// ── Boot ─────────────────────────────────────────────────────────────────────
+// ── Boot ──────────────────────────────────────────────────────────────────────
 (async()=>{
   render();
   const{data:{session}}=await sb.auth.getSession();
