@@ -605,6 +605,24 @@ function buildManualQs(qs){
 function buildQuiz(){
   const ws=S.currentWs,qs=ws.questions||[],qi=S.currentQ,q=qs[qi],ans=S.answers[qi];
   const pct=Math.round(((qi+(ans!==undefined?1:0))/qs.length)*100);
+  const isAbacus=q.question_type==='abacus'||ws.question_format==='abacus';
+
+  // Build column-sum display if abacus format
+  let questionDisplay='';
+  if(isAbacus && q.numbers){
+    const nums=typeof q.numbers==='string'?JSON.parse(q.numbers):q.numbers;
+    questionDisplay=`<div style="display:inline-block;text-align:right;font-family:monospace;font-size:28px;font-weight:800;color:#1a1a2e;line-height:1.8;min-width:80px">
+      ${nums.map((n,i)=>{
+        const abs=Math.abs(n);
+        const sign=i===0?'':(n<0?'<span style="color:#ef4444">−</span>':'<span style="color:#10b981">+</span>');
+        return `<div>${sign} ${abs}</div>`;
+      }).join('')}
+      <div style="border-top:2.5px solid #4338ca;margin-top:4px;padding-top:4px"></div>
+    </div>`;
+  } else {
+    questionDisplay=`<div class="question-text">${q.question_text}</div>`;
+  }
+
   return`<div class="quiz-header">
     <div class="quiz-title">${ws.title}</div>
     <div class="quiz-progress">
@@ -614,7 +632,7 @@ function buildQuiz(){
   </div>
   <div class="question-card">
     <div class="question-number">Question ${qi+1}</div>
-    <div class="question-text">${q.question_text}</div>
+    ${questionDisplay}
     <input class="answer-input" id="answer-input" type="number" placeholder="?" autocomplete="off" value="${ans!==undefined?ans:''}"/>
   </div>
   <div class="quiz-actions">
@@ -835,19 +853,27 @@ async function submitQuiz(answers){
 }
 
 async function createWorksheet(){
-  const{title,description,questions}=S.newWs;
+  const{title,description,questions,format}=S.newWs;
   if(!title.trim()){showToast('Please add a title',true);return;}
   const validQs=questions.filter(q=>q.text.trim()&&q.answer.trim());
   if(!validQs.length){showToast('Add at least one question with an answer',true);return;}
   try{
-    const{data:ws}=await sb.from('worksheets').insert({title,description,is_active:true,teacher_id:S.profile.id}).select().single();
+    const qFormat=format||'standard';
+    const{data:ws}=await sb.from('worksheets').insert({title,description,is_active:true,teacher_id:S.profile.id,question_format:qFormat}).select().single();
     if(ws){
-      await sb.from('questions').insert(validQs.map((q,i)=>({worksheet_id:ws.id,question_text:q.text,correct_answer:q.answer,order_index:i})));
-      showToast(`Worksheet published with ${validQs.length} questions!`);
+      await sb.from('questions').insert(validQs.map((q,i)=>({
+        worksheet_id:ws.id,
+        question_text:q.text,
+        correct_answer:q.answer,
+        order_index:i,
+        question_type:q.type||'standard',
+        numbers:q.nums?JSON.stringify(q.nums):null
+      })));
+      showToast(`Worksheet published with ${validQs.length} ${qFormat==='abacus'?'sums':'questions'}!`);
       S.newWs={title:'',description:'',questions:[{text:'',answer:''}]};S.xlsxPreview=null;
       await loadData();set({tab:'worksheets'});
     }
-  }catch(e){showToast('Error creating worksheet',true);}
+  }catch(e){showToast('Error creating worksheet',true);console.warn(e);}
 }
 
 async function toggleWs(wsId,isActive){
@@ -951,8 +977,15 @@ function parseXlsx(file){
 function importXlsx(){
   const valid=(S.xlsxPreview?.rows||[]).filter(r=>r.ok);
   if(!valid.length){showToast('No valid rows to import',true);return;}
-  set({newWs:{...S.newWs,questions:valid.map(r=>({text:r.question,answer:r.answer}))},createTab:'manual',xlsxPreview:null});
-  showToast(`✔ ${valid.length} questions imported!`);
+  const fmt=S.xlsxPreview?.format||'standard';
+  const questions=valid.map(r=>({
+    text:r.question,
+    answer:r.answer,
+    nums:r.nums||null,
+    type:fmt==='abacus'?'abacus':'standard'
+  }));
+  set({newWs:{...S.newWs,questions,format:fmt},createTab:'manual',xlsxPreview:null});
+  showToast(`✔ ${valid.length} ${fmt==='abacus'?'sums':'questions'} imported!`);
 }
 
 function downloadTemplate(){
