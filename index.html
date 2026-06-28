@@ -614,8 +614,9 @@ function buildQuiz(){
     questionDisplay=`<div style="display:inline-block;text-align:right;font-family:monospace;font-size:28px;font-weight:800;color:#1a1a2e;line-height:1.8;min-width:80px">
       ${nums.map((n,i)=>{
         const abs=Math.abs(n);
-        const sign=i===0?'':(n<0?'<span style="color:#ef4444">−</span>':'<span style="color:#10b981">+</span>');
-        return `<div>${sign} ${abs}</div>`;
+        const sign=n<0?'<span style="color:#ef4444">−</span> ':'';
+        const display=n<0?abs:n;
+        return `<div>${sign}${display}</div>`;
       }).join('')}
       <div style="border-top:2.5px solid #4338ca;margin-top:4px;padding-top:4px"></div>
     </div>`;
