@@ -539,14 +539,34 @@ function buildExcelUpload(){
       <div class="drop-icon">📊</div>
       <div class="drop-title">Drop your Excel file here</div>
       <div class="drop-sub">or click to browse</div>
-      <div class="drop-hint">Column A: <code>Question</code> · Column B: <code>Answer</code><br/>Row 1 = header. Supports <code>.xlsx</code> <code>.xls</code> <code>.csv</code></div>
+      <div class="drop-hint">Supports <strong>Abacus format</strong>: groups with <code>Questions</code> label + 5 number rows + <code>Answer</code> row (10 sums per group).<br/>Also supports standard format: Column A = <code>Question</code>, Column B = <code>Answer</code>.</div>
     </div>
     ${preview?buildXlsxPreview(preview):''}
   </div>`;
 }
 
 function buildXlsxPreview(preview){
-  const{rows,errors}=preview,valid=rows.filter(r=>r.ok);
+  const{rows,errors,format}=preview,valid=rows.filter(r=>r.ok);
+  const isAbacus=format==='abacus';
+  if(isAbacus){
+    // Show column-format sums in a grid preview
+    return`<div class="excel-preview">
+      <div class="excel-preview-header">
+        <div class="excel-preview-title">🧮 Abacus format detected &nbsp;<span class="preview-ok">✔ ${valid.length} sums</span></div>
+        <button class="excel-preview-clear" id="clear-preview">✕ Clear</button>
+      </div>
+      <div style="padding:14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:10px;max-height:260px;overflow-y:auto">
+        ${rows.slice(0,60).map((r,i)=>`
+          <div style="background:#f8f7ff;border-radius:8px;padding:8px;text-align:center;border:1px solid #e5e7eb">
+            <div style="font-size:10px;color:#9ca3af;margin-bottom:4px">#${i+1}</div>
+            <div style="font-family:monospace;font-size:13px;font-weight:700;color:#1a1a2e;line-height:1.6;white-space:pre">${r.question}</div>
+            <div style="border-top:1.5px solid #4338ca;margin:4px 0"></div>
+            <div style="font-size:14px;font-weight:800;color:#4338ca">${r.answer}</div>
+          </div>`).join('')}
+      </div>
+    </div>
+    <button class="import-btn" id="import-xlsx-btn">⬆ Import ${valid.length} sums as worksheet</button>`;
+  }
   return`<div class="excel-preview">
     <div class="excel-preview-header">
       <div class="excel-preview-title">📊 ${rows.length} rows &nbsp;<span class="preview-ok">✔ ${valid.length} valid</span>${errors.length?` &nbsp;<span class="preview-err">✗ ${errors.length} skipped</span>`:''}</div>
@@ -860,6 +880,61 @@ function parseXlsx(file){
       const sheet=wb.Sheets[wb.SheetNames[0]];
       const raw=XLSX.utils.sheet_to_json(sheet,{header:1,defval:''});
       if(!raw||raw.length<2){showToast('File appears empty.',true);return;}
+
+      // ── Detect format ──────────────────────────────────────────────
+      // Abacus column-sum format: rows with 'Questions' label + number rows + 'Answer' row
+      const isAbacusFormat = raw.some(r=>String(r[0]).trim().toLowerCase()==='questions');
+
+      if(isAbacusFormat){
+        // Parse Abacus template: groups of rows separated by 'Questions' header
+        // Each group: header row, 5 number rows, answer row
+        // Columns 1..N = individual sums (column of numbers to add)
+        const questions=[];
+        let i=0;
+        while(i<raw.length){
+          const label=String(raw[i][0]||'').trim().toLowerCase();
+          if(label==='questions'){
+            // Collect number rows until we hit 'Answer' or end
+            const numRows=[];
+            let j=i+1;
+            while(j<raw.length && String(raw[j][0]||'').trim().toLowerCase()!=='answer'){
+              numRows.push(raw[j]);
+              j++;
+            }
+            // j now points to Answer row (or end)
+            const answerRow = j<raw.length ? raw[j] : null;
+            // Each column (1 onwards) is one question
+            const numCols = numRows[0]?numRows[0].length:0;
+            for(let col=1;col<numCols;col++){
+              const nums=numRows.map(r=>r[col]).filter(v=>v!==''&&v!==null&&v!==undefined);
+              if(!nums.length) continue;
+              // Build column-format question text: numbers stacked with + signs
+              const questionText = nums.map((n,idx)=>{
+                const num=Number(n);
+                if(idx===0) return String(num);
+                return (num<0?'− '+Math.abs(num):'+ '+num);
+              }).join('\n');
+              const answer = answerRow ? Number(answerRow[col]) : nums.reduce((a,b)=>Number(a)+Number(b),0);
+              questions.push({
+                question: questionText,
+                answer: String(answer),
+                nums: nums.map(Number),
+                ok: true,
+                err: ''
+              });
+            }
+            i=j+1;
+          } else {
+            i++;
+          }
+        }
+        if(questions.length){
+          set({xlsxPreview:{rows:questions,errors:[],format:'abacus'}});
+          return;
+        }
+      }
+
+      // ── Standard format: Question / Answer columns ──────────────────
       const header=raw[0].map(c=>String(c).toLowerCase().trim());
       let qCol=header.findIndex(h=>h.includes('question')||h==='q');
       let aCol=header.findIndex(h=>h.includes('answer')||h==='a'||h==='ans');
@@ -868,12 +943,11 @@ function parseXlsx(file){
         question:String(r[qCol]||'').trim(),answer:String(r[aCol]||'').trim(),
         ok:!!(String(r[qCol]||'').trim()&&String(r[aCol]||'').trim()),err:''
       })).filter(r=>r.question||r.answer);
-      set({xlsxPreview:{rows,errors:rows.filter(r=>!r.ok)}});
-    }catch(err){showToast('Could not read file.',true);}
+      set({xlsxPreview:{rows,errors:rows.filter(r=>!r.ok),format:'standard'}});
+    }catch(err){showToast('Could not read file.',true);console.warn(err);}
   };
   reader.readAsArrayBuffer(file);
 }
-
 function importXlsx(){
   const valid=(S.xlsxPreview?.rows||[]).filter(r=>r.ok);
   if(!valid.length){showToast('No valid rows to import',true);return;}
@@ -882,10 +956,12 @@ function importXlsx(){
 }
 
 function downloadTemplate(){
-  const ws=XLSX.utils.aoa_to_sheet([['Question','Answer'],['2 + 3 = ?','5'],['10 - 4 = ?','6'],['3 × 4 = ?','12'],['15 ÷ 3 = ?','5'],['7 + 8 = ?','15']]);
-  ws['!cols']=[{wch:32},{wch:16}];
-  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Worksheet');
-  XLSX.writeFile(wb,'AbacusHomeWork_template.xlsx');
+  // Embedded Abacus-format template (6 groups × 10 sums × 5 numbers)
+  const b64='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';
+  const bytes=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
+  const blob=new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='AbacusHomeWork_template.xlsx';a.click();
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
