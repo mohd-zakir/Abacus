@@ -89,6 +89,12 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f0f4ff;min-height:100v
 .answer-input{width:100%;max-width:200px;padding:14px 20px;font-size:24px;font-weight:700;text-align:center;border:2px solid #e5e7eb;border-radius:12px;outline:none;color:#1a1a2e;transition:border .2s}
 .answer-input:focus{border-color:#4338ca;box-shadow:0 0 0 3px rgba(67,56,202,.12)}
 .quiz-actions{display:flex;gap:12px;justify-content:center;margin-top:20px}
+.btn-save{padding:12px 20px;background:#fff;color:#4338ca;border:2px solid #4338ca;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px}
+.btn-save:hover{background:#f5f3ff}
+.btn-save.saving{opacity:.6;cursor:not-allowed}
+.save-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:#4338ca;color:#fff;padding:10px 20px;border-radius:12px;font-size:14px;font-weight:500;opacity:0;transition:all .3s;pointer-events:none;z-index:99;white-space:nowrap}
+.save-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.draft-badge{display:inline-flex;align-items:center;gap:5px;background:#fef3c7;color:#92400e;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;margin-left:8px}
 .btn-primary{padding:12px 28px;background:#4338ca;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s}
 .btn-primary:hover{background:#3730a3}
 .btn-secondary{padding:12px 28px;background:#f3f4f6;color:#374151;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s}
@@ -221,6 +227,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f0f4ff;min-height:100v
 <body>
 <div id="root"></div>
 <div class="toast" id="toast"></div>
+<div class="save-toast" id="save-toast"></div>
 <script>
 const{createClient}=supabase;
 const sb=createClient(
@@ -239,6 +246,7 @@ let S={
   view:'loading',authTab:'login',
   user:null,profile:null,
   worksheets:[],submissions:[],wsResults:{},
+  drafts:{},
   currentWs:null,currentQ:0,answers:[],
   tab:'worksheets',createTab:'manual',xlsxPreview:null,
   newWs:{title:'',description:'',questions:[{text:'',answer:''}]},
@@ -429,12 +437,12 @@ function buildStudentWsList(){
     const sub=S.submissions.find(s=>s.worksheet_id===w.id);
     return`<div class="worksheet-card ${sub?'completed':''}" data-ws="${w.id}">
       <div class="ws-emoji">${emojis[i%emojis.length]}</div>
-      ${sub?`<div class="ws-badge">✅</div>`:''}
+      ${sub?`<div class="ws-badge">✅</div>`:S.drafts&&S.drafts[w.id]?`<div class="ws-badge">📝</div>`:''}
       <div class="ws-title">${w.title}</div>
       <div class="ws-desc">${w.description||'Arithmetic practice'}</div>
       <div class="ws-meta">
         <span class="ws-questions">${w.q_count||0} questions</span>
-        ${sub?`<span class="ws-score ${sub.score>=50?'pass':'fail'}">${Math.round(sub.score)}%</span>`:''}
+        ${sub?`<span class="ws-score ${sub.score>=50?'pass':'fail'}">${Math.round(sub.score)}%</span>`:S.drafts&&S.drafts[w.id]?`<span class="ws-questions" style="background:#fef3c7;color:#92400e">📝 In progress</span>`:''}
       </div>
     </div>`;
   }).join('')}
@@ -638,6 +646,7 @@ function buildQuiz(){
   </div>
   <div class="quiz-actions">
     ${qi>0?`<button class="btn-secondary" id="prev-btn">← Previous</button>`:''}
+    <button class="btn-save" id="save-btn">💾 Save & Exit</button>
     <button class="btn-primary" id="next-btn">${qi===qs.length-1?'Submit ✓':'Next →'}</button>
   </div>`;
 }
@@ -742,6 +751,7 @@ function bindApp(){
     else submitQuiz(cur);
   });
   on('answer-input','keydown',e=>{if(e.key==='Enter')$('next-btn')?.click()});
+  on('save-btn','click',saveDraft);
   on('add-q-btn','click',()=>set({newWs:{...S.newWs,questions:[...S.newWs.questions,{text:'',answer:''}]}}));
   on('submit-ws-btn','click',createWorksheet);
   on('clear-preview','click',()=>set({xlsxPreview:null}));
@@ -790,6 +800,7 @@ async function loadData(){
     if(S.profile?.role==='student'){
       const{data:subs}=await sb.from('submissions').select('*').eq('student_id',S.profile.id);
       S.submissions=subs||[];
+      await loadDrafts();
       const wsResults={};
       for(const w of S.worksheets){
         const{data:all}=await sb.from('submissions').select('score,correct_count,total_questions,submitted_at,student_id').eq('worksheet_id',w.id);
@@ -823,7 +834,57 @@ async function startWs(wsId){
   const ws=S.worksheets.find(w=>w.id===wsId);if(!ws)return;
   if(S.submissions.find(s=>s.worksheet_id===wsId)){showToast('You already submitted this worksheet!');return;}
   const{data:qs}=await sb.from('questions').select('*').eq('worksheet_id',wsId).order('order_index');
-  S.currentWs={...ws,questions:qs||[]};set({view:'quiz',currentQ:0,answers:[]});
+  S.currentWs={...ws,questions:qs||[]};
+  // Resume from draft if available
+  const draft=S.drafts[wsId];
+  if(draft){
+    set({view:'quiz',currentQ:draft.currentQ||0,answers:draft.answers||[]});
+    showSaveToast('📝 Resuming from where you left off');
+  } else {
+    set({view:'quiz',currentQ:0,answers:[]});
+  }
+}
+
+function showSaveToast(msg){
+  const t=document.getElementById('save-toast');
+  if(t){t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+}
+
+async function saveDraft(){
+  const btn=document.getElementById('save-btn');
+  if(btn){btn.classList.add('saving');btn.textContent='💾 Saving…';}
+  const inp=document.getElementById('answer-input');
+  const cur=[...S.answers]; cur[S.currentQ]=inp?inp.value:S.answers[S.currentQ];
+  try{
+    await sb.from('worksheet_drafts').upsert({
+      student_id:S.profile.id,
+      worksheet_id:S.currentWs.id,
+      answers:JSON.stringify(cur),
+      current_question:S.currentQ,
+      saved_at:new Date().toISOString()
+    },{onConflict:'student_id,worksheet_id'});
+    S.drafts={...S.drafts,[S.currentWs.id]:{answers:cur,currentQ:S.currentQ}};
+    showSaveToast('✅ Progress saved! You can continue later.');
+    setTimeout(()=>set({view:'home',answers:[],currentQ:0,currentWs:null}),1200);
+  }catch(e){
+    showSaveToast('❌ Could not save. Try again.');
+    if(btn){btn.classList.remove('saving');btn.textContent='💾 Save & Exit';}
+    console.warn('saveDraft',e);
+  }
+}
+
+async function loadDrafts(){
+  try{
+    const{data}=await sb.from('worksheet_drafts').select('worksheet_id,answers,current_question').eq('student_id',S.profile.id);
+    const drafts={};
+    (data||[]).forEach(d=>{
+      drafts[d.worksheet_id]={
+        answers:typeof d.answers==='string'?JSON.parse(d.answers):d.answers,
+        currentQ:d.current_question
+      };
+    });
+    S.drafts=drafts;
+  }catch(e){console.warn('loadDrafts',e);}
 }
 
 async function submitQuiz(answers){
@@ -842,6 +903,9 @@ async function submitQuiz(answers){
       })));
       S.submissions=[...S.submissions,sub];
     }
+    // Clear draft after submission
+    await sb.from('worksheet_drafts').delete().eq('student_id',S.profile.id).eq('worksheet_id',ws.id);
+    const newDrafts={...S.drafts}; delete newDrafts[ws.id]; S.drafts=newDrafts;
     const{data:allSubs}=await sb.from('submissions').select('score,correct_count,total_questions,submitted_at,student_id').eq('worksheet_id',ws.id);
     const withInfo=await Promise.all((allSubs||[]).map(async s=>{
       if(s.student_id===S.profile.id) return{...s,student_name:S.profile.name,student_grade:S.profile.grade||'',student_class:S.profile.class||''};
